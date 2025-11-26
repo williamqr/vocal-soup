@@ -40,8 +40,13 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     (async () => {
       const { status } = await Audio.requestPermissionsAsync();
       setHasPermission(status === "granted");
+
     })();
   }, []);
+
+  const InitiateAI = async () => {
+    
+  }
 
   const startRecording = async () => {
     try {

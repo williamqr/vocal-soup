@@ -2,7 +2,7 @@
 import { supabase } from "../lib/supabaseClient";
 
 // In dev: use localhost for iOS simulator, or your LAN IP for a real device
-const API_BASE = "http://localhost:4000";
+const API_BASE = "https://backend-9hz3.onrender.com";
 
 async function getAuthHeader() {
   const {
@@ -19,16 +19,21 @@ async function getAuthHeader() {
 }
 
 export async function fetchMe() {
-  const headers = await getAuthHeader();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) throw new Error("Not logged in");
 
   const res = await fetch(`${API_BASE}/me`, {
-    method: "GET",
-    headers,
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
   });
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Failed to fetch /me: ${res.status} - ${text}`);
+    throw new Error(`Backend error: ${res.status} - ${text}`);
   }
 
   return res.json();

@@ -11,6 +11,7 @@ import { GameScreen } from "./src/screens/GameScreen";
 import { AuthLandingScreen } from "./src/screens/AuthLandingScreen";
 import { LoginScreen } from "./src/screens/LoginScreen";
 import { SignupScreen } from "./src/screens/SignupScreen";
+import { StoryScreen } from "./src/screens/StoryScreen";
 
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 
@@ -20,6 +21,11 @@ export type RootStackParamList = {
   Signup: undefined;
   Home: undefined;
   Game: { puzzleId: string };
+  Story: {
+    finalStory: string;
+    openingText?: string;
+    storyChunks?: string[];
+  };
 };
 
 const AuthStack = createNativeStackNavigator<RootStackParamList>();
@@ -73,6 +79,11 @@ function AppStackNavigator() {
         name="Game"
         component={GameScreen}
         options={{ title: "Puzzle" }}
+      />
+      <AppStack.Screen
+        name="Story"
+        component={StoryScreen}
+        options={{ title: "Your Story" }}
       />
     </AppStack.Navigator>
   );
