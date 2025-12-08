@@ -11,9 +11,38 @@ import {
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
-import { puzzles } from "../data/puzzles";
 import { fetchMe } from "../lib/apiClient";
 import { signOut } from "../services/auth";
+import { Puzzle } from "../data/puzzles";
+import { supabase } from "../lib/supabaseClient"; // Import the standard client
+
+
+export async function getAllPuzzlesFromDB(): Promise<Puzzle[]> {
+  // 1. Use the standard client and select all rows
+  const { data, error } = await supabase 
+    .from('puzzles')
+    .select('*')
+    .order('id', { ascending: true }); // Optionally, order them logically
+
+  if (error) {
+    console.error('Error fetching all puzzles:', error);
+    throw new Error(`Failed to load all puzzles: ${error.message}`);
+  }
+
+  // 2. Map the data from the database (snake_case) to your frontend interface (camelCase)
+  const formattedPuzzles: Puzzle[] = (data || []).map((dbPuzzle: any) => ({
+    id: dbPuzzle.id,
+    title: dbPuzzle.title,
+    content: dbPuzzle.content,
+    fullAnswer: dbPuzzle.full_answer, 
+    parts: dbPuzzle.parts,
+    hint: dbPuzzle.hint,
+    surface: dbPuzzle.surface || '' // Ensure surface is included if used in HomeScreen
+  }));
+
+  console.log('Loaded Puzzles:', formattedPuzzles.length);
+  return formattedPuzzles;
+}
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
@@ -26,7 +55,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [me, setMe] = useState<MeResponse | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [dbPuzzles, setDbPuzzles] = useState<Puzzle[]>([]);
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -41,6 +70,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     };
 
     loadProfile();
+
+    const loadPuzzles = async () => {
+      try {
+        const data = await getAllPuzzlesFromDB();
+        setDbPuzzles(data);
+      } catch (err: any) {
+        console.error("Failed to load puzzles from DB:", err);
+        // Concatenate or handle errors appropriately
+        setError(prev => (prev ? prev + "\n" : "") + (err.message ?? "Failed to load puzzles"));
+      }
+    };
+
+    loadPuzzles();
   }, []);
 
   const handleLogout = async () => {
@@ -85,7 +127,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       </Text>
 
       <FlatList
-        data={puzzles}
+        data={dbPuzzles}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
@@ -95,7 +137,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           >
             <Text style={styles.cardTitle}>{item.title}</Text>
             <Text style={styles.cardSurface} numberOfLines={2}>
-              {item.surface}
+              {item.content}
             </Text>
             <Text style={styles.cardHintLabel}>Tap to start this puzzle</Text>
           </TouchableOpacity>

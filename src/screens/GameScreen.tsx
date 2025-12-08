@@ -10,21 +10,20 @@ import {
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
-import { puzzles } from "../data/puzzles";
 import { Audio } from "expo-av";
+import { Puzzle } from "../data/puzzles";
+import { getPuzzleFromDB } from "../services/data";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Game">;
 
 export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const { puzzleId } = route.params;
 
-  const puzzle = useMemo(
-    () => puzzles.find((p) => p.id === puzzleId),
-    [puzzleId]
-  );
+  const [puzzleData, setPuzzleData] = useState<Puzzle | null>(null);
 
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
+  const [evaluationResult, setEvaluationResult] = useState<string | null>(null);
 
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -40,13 +39,10 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     (async () => {
       const { status } = await Audio.requestPermissionsAsync();
       setHasPermission(status === "granted");
-
+      const data = await getPuzzleFromDB(puzzleId);
+      setPuzzleData(data);
     })();
   }, []);
-
-  const InitiateAI = async () => {
-    
-  }
 
   const startRecording = async () => {
     try {
@@ -84,6 +80,49 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
+  // A helper function to upload the file to your backend server
+const uploadAudioForTranscription = async (audioUri: string) => {
+    // 1. Create FormData object
+    const formData = new FormData();
+    setEvaluationResult('Evaluating...'); // 👈 Set a status message while waiting
+    // Determine the filename and mime type for the file
+    // Expo recordings are often m4a or wav, depending on your config.
+    const fileType = 'audio/m4a'; 
+    const fileName = `recording-${Date.now()}.m4a`;
+
+    // 2. Append the file data.
+    // The format is crucial for React Native/Expo to upload files.
+    formData.append('audioFile', {
+        uri: audioUri,
+        type: fileType,
+        name: fileName,
+    } as any);
+
+    try {
+        console.log("Uploading audio file to backend...");
+        // 3. Send the request to your backend's transcription endpoint
+        const response = await fetch(`https://backend-9hz3.onrender.com/chat/transcribe?puzzleID=${puzzleId}`, {
+            method: 'POST',
+            // No 'Content-Type': 'multipart/form-data' header is needed;
+            // fetch handles it automatically with the correct boundary when using FormData.
+            body: formData, 
+        });
+
+        if (!response.ok) {
+            throw new Error(`Upload failed with status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("Transcription Result:", data.evaluation);
+        setEvaluationResult(data.evaluation);
+        // You can now set this text to a state variable (e.g., setTranscribedText(data.transcribedText))
+        
+    } catch (error) {
+        console.error("Error during file upload or transcription:", error);
+        setEvaluationResult("Error during transcription.");
+    }
+};
+
   const stopRecording = async () => {
     try {
       setIsRecording(false);
@@ -94,6 +133,9 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       const uri = recording.getURI();
       setLastRecordingUri(uri ?? null);
 
+      if (uri) {
+      await uploadAudioForTranscription(uri);
+      }
       const status = await recording.getStatusAsync();
       if (status.isDoneRecording && status.durationMillis != null) {
         setRecordingDuration(Math.floor(status.durationMillis / 1000)); // seconds
@@ -117,7 +159,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   // If puzzle not found, show fallback UI
-  if (!puzzle) {
+  if (!puzzleData) {
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>Puzzle not found.</Text>
@@ -144,11 +186,11 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Puzzle title */}
-        <Text style={styles.title}>{puzzle.title}</Text>
+        <Text style={styles.title}>{puzzleData.title}</Text>
 
         {/* Surface story */}
         <Text style={styles.label}>Puzzle</Text>
-        <Text style={styles.surface}>{puzzle.surface}</Text>
+        <Text style={styles.surface}>{puzzleData.content}</Text>
 
         {/* Hint section */}
         <View style={styles.section}>
@@ -161,7 +203,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
             </Text>
           </TouchableOpacity>
 
-          {showHint && <Text style={styles.hintText}>{puzzle.hint}</Text>}
+          {showHint && <Text style={styles.hintText}>{puzzleData.hint}</Text>}
         </View>
 
         {/* Solution section */}
@@ -178,11 +220,25 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
           {showSolution && (
             <>
               <Text style={styles.label}>Full Story</Text>
-              <Text style={styles.solutionText}>{puzzle.solution}</Text>
+              <Text style={styles.solutionText}>{puzzleData.fullAnswer}</Text>
             </>
           )}
         </View>
       </ScrollView>
+
+      <View style={styles.evaluationContainer}>
+        {evaluationResult && (
+          <Text style={[
+            styles.evaluationText,
+            evaluationResult === 'yes' && styles.evaluationTextSuccess,
+            (evaluationResult === 'no' || evaluationResult === 'Error evaluating answer.') && styles.evaluationTextFailure,
+          ]}>
+            {evaluationResult === 'Evaluating...' 
+              ? 'Analyzing your question...' 
+              : `Evaluation: ${evaluationResult.toUpperCase()}`}
+          </Text>
+        )}
+      </View>
 
       {/* Voice control area */}
       <View style={styles.voiceContainer}>
@@ -279,6 +335,22 @@ const styles = StyleSheet.create({
     color: "#FCA5A5",
     textAlign: "center",
     textAlignVertical: "center"
+  },
+  evaluationContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    alignItems: 'center',
+  },
+  evaluationText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#E5E7EB', // Default color
+  },
+  evaluationTextSuccess: {
+    color: '#10B981', // Green for 'yes'
+  },
+  evaluationTextFailure: {
+    color: '#F87171', // Red for 'no' or error
   },
   voiceContainer: {
     paddingHorizontal: 16,
