@@ -6,13 +6,15 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView
+  ScrollView,
+  ActivityIndicator
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { Audio } from "expo-av";
 import { Puzzle } from "../data/puzzles";
 import { getPuzzleFromDB } from "../services/data";
+import { useAuth } from "../context/AuthContext"; // 👈 New Import
 
 type Props = NativeStackScreenProps<RootStackParamList, "Game">;
 
@@ -24,6 +26,10 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isLoadingSession, setIsLoadingSession] = useState(true); // New state for loading
+  const [completionPercent, setCompletionPercent] = useState<number>(0);
+
 
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -33,6 +39,8 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const { user, loading: authLoading } = useAuth(); // 👈 New: Get user and auth status
+  const currentUserId = user?.id; // 👈 The User ID is now easily accessible
 
   // Ask for mic permission once on mount
   useEffect(() => {
@@ -43,6 +51,50 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       setPuzzleData(data);
     })();
   }, []);
+
+  useEffect(() => {
+    // Only proceed if auth is not loading and we have a User ID
+    if (!authLoading && currentUserId && !sessionId) {
+      // Check if currentUserId is defined, if not, the user is not logged in.
+      // You may navigate away or show an error if (user === null)
+      startNewSession(currentUserId);
+    } else if (!authLoading && !currentUserId) {
+        // Handle case where user is not logged in
+        console.warn("User is not logged in. Cannot start game session.");
+        // Consider navigating to login screen here
+    }
+  }, [authLoading, currentUserId]);
+
+  const startNewSession = async (userId: string) => {
+    setIsLoadingSession(true);
+    try {
+      console.log(`Starting new session for puzzle ${puzzleId} and user ${userId}`);
+      const response = await fetch(`https://backend-9hz3.onrender.com/story/start`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          puzzleId: puzzleId,
+          userId: userId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to start story session: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const newSessionId = data.storySessionId; // Assuming the backend returns { sessionId: '...' }
+      setSessionId(newSessionId);
+      console.log("New Session ID obtained:", newSessionId);
+    } catch (error) {
+      console.error("Error starting new session:", error);
+      // You might want to show an error message to the user here
+    } finally {
+      setIsLoadingSession(false);
+    }
+  };
 
   const startRecording = async () => {
     try {
@@ -101,7 +153,7 @@ const uploadAudioForTranscription = async (audioUri: string) => {
     try {
         console.log("Uploading audio file to backend...");
         // 3. Send the request to your backend's transcription endpoint
-        const response = await fetch(`https://backend-9hz3.onrender.com/chat/transcribe?puzzleID=${puzzleId}`, {
+        const response = await fetch(`https://backend-9hz3.onrender.com/chat/transcribe?sessionId=${sessionId}`, {
             method: 'POST',
             // No 'Content-Type': 'multipart/form-data' header is needed;
             // fetch handles it automatically with the correct boundary when using FormData.
@@ -115,6 +167,8 @@ const uploadAudioForTranscription = async (audioUri: string) => {
         const data = await response.json();
         console.log("Transcription Result:", data.evaluation);
         setEvaluationResult(data.evaluation);
+        setCompletionPercent(data.completionPercent); // expecting 0–100
+
         // You can now set this text to a state variable (e.g., setTranscribedText(data.transcribedText))
         
     } catch (error) {
@@ -158,6 +212,15 @@ const uploadAudioForTranscription = async (audioUri: string) => {
     }
   };
 
+  if (!puzzleData || isLoadingSession) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#F97316" />
+        <Text style={styles.loadingText}>Loading puzzle and starting session...</Text>
+      </View>
+    );
+  }
+
   // If puzzle not found, show fallback UI
   if (!puzzleData) {
     return (
@@ -173,7 +236,34 @@ const uploadAudioForTranscription = async (audioUri: string) => {
     );
   }
 
+  if (!puzzleData || authLoading || isLoadingSession) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#F97316" />
+        <Text style={styles.loadingText}>
+          {authLoading ? "Authenticating user..." : "Loading puzzle and starting session..."}
+        </Text>
+      </View>
+    );
+  }
+
+  // Handle case where user is NOT logged in but auth is done loading
+  if (!currentUserId) {
+     return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>User not logged in.</Text>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('Login')} // Assuming you have a login screen
+        >
+          <Text style={styles.primaryButtonText}>Go to Login</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   const micStatusText = (() => {
+    if (isLoadingSession) return "Initializing game session...";
     if (hasPermission === false) return "Microphone permission denied.";
     if (isRecording) return "Recording... tap the mic to stop.";
     if (lastRecordingUri && recordingDuration != null) {
@@ -383,5 +473,17 @@ const styles = StyleSheet.create({
   micIcon: {
     fontSize: 32,
     color: "#FFFFFF"
+  },
+  loadingText: {
+    color: '#E5E7EB',
+    marginTop: 10,
+    fontSize: 16,
+  },
+  sessionIdText: {
+    color: '#6B7280',
+    fontSize: 12,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    textAlign: 'center',
   }
 });
