@@ -167,7 +167,8 @@ const uploadAudioForTranscription = async (audioUri: string) => {
         const data = await response.json();
         console.log("Transcription Result:", data.evaluation);
         setEvaluationResult(data.evaluation);
-        setCompletionPercent(data.completionPercent); // expecting 0–100
+        console.log("Transcription Completion:", data.completion);
+        setCompletionPercent(data.completion * 100); // expecting 0–100
 
         // You can now set this text to a state variable (e.g., setTranscribedText(data.transcribedText))
         
@@ -277,6 +278,20 @@ const uploadAudioForTranscription = async (audioUri: string) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Puzzle title */}
         <Text style={styles.title}>{puzzleData.title}</Text>
+        {/* 👇 Progress Bar */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBarBackground}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: `${Math.min(Math.max(completionPercent, 0), 100)}%` },
+              ]}
+            />
+          </View>
+          <Text style={styles.progressText}>
+            {Math.round(completionPercent)}% solved
+          </Text>
+        </View>
 
         {/* Surface story */}
         <Text style={styles.label}>Puzzle</Text>
@@ -360,6 +375,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 24,
     paddingBottom: 16
+  },
+  // 👇 NEW styles
+  progressContainer: {
+    marginBottom: 16,
+  },
+  progressBarBackground: {
+    width: "100%",
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: "#1F2937",
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: "#F97316",
+  },
+  progressText: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#9CA3AF",
   },
   title: {
     fontSize: 24,
