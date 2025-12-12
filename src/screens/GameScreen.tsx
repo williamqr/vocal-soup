@@ -14,47 +14,33 @@ import { RootStackParamList } from "../../App";
 import { Audio } from "expo-av";
 import { Puzzle } from "../data/puzzles";
 import { getPuzzleFromDB } from "../services/data";
-import { useAuth } from "../context/AuthContext"; // 👈 New Import
-import { fetchMe } from "../lib/apiClient";
+import { useAuth } from "../context/AuthContext";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Game">;
-
-
-type MeResponse = {
-  id: string;
-  email: string;
-  // 👇 NEW: language preference from profile, e.g. "en" | "zh"
-  language?: "en" | "zh";
-};
 
 
 
 export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const { puzzleId } = route.params;
-  const [language, setLanguage] = useState<"en" | "zh">("en"); // Default to English
-  const isZh = language === "zh"; // Derived from language, no need for separate state
-  const [puzzleData, setPuzzleData] = useState<Puzzle | null>(null);
+  const { user, loading: authLoading, language, isZh } = useAuth();
+  const currentUserId = user?.id;
 
+  const [puzzleData, setPuzzleData] = useState<Puzzle | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [isLoadingSession, setIsLoadingSession] = useState(true); // New state for loading
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [completionPercent, setCompletionPercent] = useState<number>(0);
 
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [lastRecordingUri, setLastRecordingUri] = useState<string | null>(null);
-  const [recordingDuration, setRecordingDuration] = useState<number | null>(
-    null
-  );
+  const [recordingDuration, setRecordingDuration] = useState<number | null>(null);
 
   const recordingRef = useRef<Audio.Recording | null>(null);
-  const { user, loading: authLoading } = useAuth(); // 👈 Get user and auth status
-  const currentUserId = user?.id; // 👈 The User ID is now easily accessible
 
-  // 👇 NEW: language from user profile (set elsewhere, e.g. login/settings)
-  // Ask for mic permission once on mount
+  // Ask for mic permission and load puzzle on mount
   useEffect(() => {
     (async () => {
       const { status } = await Audio.requestPermissionsAsync();
@@ -63,19 +49,6 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       setPuzzleData(data);
     })();
   }, [puzzleId]);
-
-    useEffect(() => {
-      const loadProfile = async () => {
-            try {
-              const data = await fetchMe() as MeResponse;
-              setLanguage(data.language ?? "en");
-              console.log("GameScreen loaded profile language:", data.language ?? "en");
-            } catch (err: any) {
-              console.error("Failed to load /me:", err);
-            }
-          };
-          loadProfile();
-    }, []);
 
   useEffect(() => {
     // Only proceed if auth is not loading and we have a User ID

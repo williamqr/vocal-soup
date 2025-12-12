@@ -11,10 +11,10 @@ import {
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
-import { fetchMe } from "../lib/apiClient";
 import { signOut } from "../services/auth";
 import { Puzzle } from "../data/puzzles";
-import { supabase } from "../lib/supabaseClient"; // Import the standard client
+import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../context/AuthContext";
 
 
 export async function getAllPuzzlesFromDB(): Promise<Puzzle[]> {
@@ -46,47 +46,19 @@ export async function getAllPuzzlesFromDB(): Promise<Puzzle[]> {
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
-type MeResponse = {
-  id: string;
-  email: string;
-  // 👇 NEW: language preference from profile, e.g. "en" | "zh"
-  language?: "en" | "zh";
-};
-
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const [me, setMe] = useState<MeResponse | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const { user, loading: authLoading, isZh } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [dbPuzzles, setDbPuzzles] = useState<Puzzle[]>([]);
 
-  // 👇 Determine language from profile (default to English)
-  const language = me?.language ?? "en";
-  const isZh = language === "zh";
-
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const data = await fetchMe();
-        setMe(data as MeResponse);
-        console.log(me?.language ?? "en");
-      } catch (err: any) {
-        console.error("Failed to load /me:", err);
-        setError(err.message ?? "Failed to load profile");
-      } finally {
-        setLoadingProfile(false);
-      }
-    };
-
-    loadProfile();
-
     const loadPuzzles = async () => {
       try {
         const data = await getAllPuzzlesFromDB();
         setDbPuzzles(data);
       } catch (err: any) {
         console.error("Failed to load puzzles from DB:", err);
-        // Concatenate or handle errors appropriately
-        setError(prev => (prev ? prev + "\n" : "") + (err.message ?? "Failed to load puzzles"));
+        setError(err.message ?? "Failed to load puzzles");
       }
     };
 
@@ -109,7 +81,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.headerTextContainer}>
           <Text style={styles.title}>Vocal Soup</Text>
 
-          {loadingProfile && !me && !error && (
+          {authLoading && !error && (
             <View style={styles.profileRow}>
               <ActivityIndicator size="small" />
               <Text style={styles.profileLoadingText}>
@@ -118,10 +90,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           )}
 
-          {me && (
+          {user && (
             <Text style={styles.userText}>
-              {isZh ? "当前登录：" : "Signed in as "} 
-              <Text style={styles.userEmail}>{me.email}</Text>
+              {isZh ? "当前登录：" : "Signed in as "}
+              <Text style={styles.userEmail}>{user.email}</Text>
             </Text>
           )}
 
