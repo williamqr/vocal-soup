@@ -1,7 +1,7 @@
 // App.tsx
 
 import React from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, TouchableOpacity, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
@@ -12,6 +12,7 @@ import { AuthLandingScreen } from "./src/screens/AuthLandingScreen";
 import { LoginScreen } from "./src/screens/LoginScreen";
 import { SignupScreen } from "./src/screens/SignupScreen";
 import { StoryScreen } from "./src/screens/StoryScreen";
+import SettingsScreen from "./src/screens/UserSettingScreen";
 
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 
@@ -20,6 +21,7 @@ export type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   Home: undefined;
+  Settings: undefined; // <-- added
   Game: { puzzleId: string };
   Story: {
     finalStory: string;
@@ -73,7 +75,18 @@ function AppStackNavigator() {
       <AppStack.Screen
         name="Home"
         component={HomeScreen}
-        options={{ title: "Vocal Soup" }}
+        // add headerRight to navigate to Settings
+        options={({ navigation }) => ({
+          title: "Vocal Soup",
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Settings")}
+              style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+            >
+              <Text style={{ color: "#E5E7EB", fontWeight: "600" }}>Settings</Text>
+            </TouchableOpacity>
+          ),
+        })}
       />
       <AppStack.Screen
         name="Game"
@@ -84,6 +97,11 @@ function AppStackNavigator() {
         name="Story"
         component={StoryScreen}
         options={{ title: "Your Story" }}
+      />
+      <AppStack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ title: "Settings" }}
       />
     </AppStack.Navigator>
   );

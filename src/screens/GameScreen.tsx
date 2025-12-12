@@ -30,7 +30,6 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const [isLoadingSession, setIsLoadingSession] = useState(true); // New state for loading
   const [completionPercent, setCompletionPercent] = useState<number>(0);
 
-
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [lastRecordingUri, setLastRecordingUri] = useState<string | null>(null);
@@ -39,8 +38,12 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const recordingRef = useRef<Audio.Recording | null>(null);
-  const { user, loading: authLoading } = useAuth(); // 👈 New: Get user and auth status
+  const { user, loading: authLoading } = useAuth(); // 👈 Get user and auth status
   const currentUserId = user?.id; // 👈 The User ID is now easily accessible
+
+  // 👇 NEW: language from user profile (set elsewhere, e.g. login/settings)
+  const language = (user as any)?.language ?? "en";
+  const isZh = language === "zh";
 
   // Ask for mic permission once on mount
   useEffect(() => {
@@ -59,9 +62,9 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       // You may navigate away or show an error if (user === null)
       startNewSession(currentUserId);
     } else if (!authLoading && !currentUserId) {
-        // Handle case where user is not logged in
-        console.warn("User is not logged in. Cannot start game session.");
-        // Consider navigating to login screen here
+      // Handle case where user is not logged in
+      console.warn("User is not logged in. Cannot start game session.");
+      // Consider navigating to login screen here
     }
   }, [authLoading, currentUserId]);
 
@@ -133,50 +136,50 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   // A helper function to upload the file to your backend server
-const uploadAudioForTranscription = async (audioUri: string) => {
+  const uploadAudioForTranscription = async (audioUri: string) => {
     // 1. Create FormData object
     const formData = new FormData();
     setEvaluationResult('Evaluating...'); // 👈 Set a status message while waiting
     // Determine the filename and mime type for the file
     // Expo recordings are often m4a or wav, depending on your config.
-    const fileType = 'audio/m4a'; 
+    const fileType = 'audio/m4a';
     const fileName = `recording-${Date.now()}.m4a`;
 
     // 2. Append the file data.
     // The format is crucial for React Native/Expo to upload files.
     formData.append('audioFile', {
-        uri: audioUri,
-        type: fileType,
-        name: fileName,
+      uri: audioUri,
+      type: fileType,
+      name: fileName,
     } as any);
 
     try {
-        console.log("Uploading audio file to backend...");
-        // 3. Send the request to your backend's transcription endpoint
-        const response = await fetch(`https://backend-9hz3.onrender.com/chat/transcribe?sessionId=${sessionId}`, {
-            method: 'POST',
-            // No 'Content-Type': 'multipart/form-data' header is needed;
-            // fetch handles it automatically with the correct boundary when using FormData.
-            body: formData, 
-        });
+      console.log("Uploading audio file to backend...");
+      // 3. Send the request to your backend's transcription endpoint
+      const response = await fetch(`https://backend-9hz3.onrender.com/chat/transcribe?sessionId=${sessionId}`, {
+        method: 'POST',
+        // No 'Content-Type': 'multipart/form-data' header is needed;
+        // fetch handles it automatically with the correct boundary when using FormData.
+        body: formData,
+      });
 
-        if (!response.ok) {
-            throw new Error(`Upload failed with status: ${response.status}`);
-        }
+      if (!response.ok) {
+        throw new Error(`Upload failed with status: ${response.status}`);
+      }
 
-        const data = await response.json();
-        console.log("Transcription Result:", data.evaluation);
-        setEvaluationResult(data.evaluation);
-        console.log("Transcription Completion:", data.completion);
-        setCompletionPercent(data.completion * 100); // expecting 0–100
+      const data = await response.json();
+      console.log("Transcription Result:", data.evaluation);
+      setEvaluationResult(data.evaluation);
+      console.log("Transcription Completion:", data.completion);
+      setCompletionPercent(data.completion * 100); // expecting 0–100
 
-        // You can now set this text to a state variable (e.g., setTranscribedText(data.transcribedText))
-        
+      // You can now set this text to a state variable (e.g., setTranscribedText(data.transcribedText))
+
     } catch (error) {
-        console.error("Error during file upload or transcription:", error);
-        setEvaluationResult("Error during transcription.");
+      console.error("Error during file upload or transcription:", error);
+      setEvaluationResult("Error during transcription.");
     }
-};
+  };
 
   const stopRecording = async () => {
     try {
@@ -189,7 +192,7 @@ const uploadAudioForTranscription = async (audioUri: string) => {
       setLastRecordingUri(uri ?? null);
 
       if (uri) {
-      await uploadAudioForTranscription(uri);
+        await uploadAudioForTranscription(uri);
       }
       const status = await recording.getStatusAsync();
       if (status.isDoneRecording && status.durationMillis != null) {
@@ -217,7 +220,9 @@ const uploadAudioForTranscription = async (audioUri: string) => {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#F97316" />
-        <Text style={styles.loadingText}>Loading puzzle and starting session...</Text>
+        <Text style={styles.loadingText}>
+          {isZh ? "正在加载谜题并启动会话..." : "Loading puzzle and starting session..."}
+        </Text>
       </View>
     );
   }
@@ -226,12 +231,16 @@ const uploadAudioForTranscription = async (audioUri: string) => {
   if (!puzzleData) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Puzzle not found.</Text>
+        <Text style={styles.errorText}>
+          {isZh ? "未找到谜题。" : "Puzzle not found."}
+        </Text>
         <TouchableOpacity
           style={styles.primaryButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.primaryButtonText}>Back to list</Text>
+          <Text style={styles.primaryButtonText}>
+            {isZh ? "返回列表" : "Back to list"}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -242,7 +251,9 @@ const uploadAudioForTranscription = async (audioUri: string) => {
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#F97316" />
         <Text style={styles.loadingText}>
-          {authLoading ? "Authenticating user..." : "Loading puzzle and starting session..."}
+          {authLoading
+            ? (isZh ? "正在验证用户身份..." : "Authenticating user...")
+            : (isZh ? "正在加载谜题并启动会话..." : "Loading puzzle and starting session...")}
         </Text>
       </View>
     );
@@ -250,34 +261,48 @@ const uploadAudioForTranscription = async (audioUri: string) => {
 
   // Handle case where user is NOT logged in but auth is done loading
   if (!currentUserId) {
-     return (
+    return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>User not logged in.</Text>
+        <Text style={styles.errorText}>
+          {isZh ? "用户未登录。" : "User not logged in."}
+        </Text>
         <TouchableOpacity
           style={styles.primaryButton}
           onPress={() => navigation.navigate('Login')} // Assuming you have a login screen
         >
-          <Text style={styles.primaryButtonText}>Go to Login</Text>
+          <Text style={styles.primaryButtonText}>
+            {isZh ? "前往登录" : "Go to Login"}
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   const micStatusText = (() => {
-    if (isLoadingSession) return "Initializing game session...";
-    if (hasPermission === false) return "Microphone permission denied.";
-    if (isRecording) return "Recording... tap the mic to stop.";
+    if (isLoadingSession) return isZh ? "正在初始化游戏会话..." : "Initializing game session...";
+    if (hasPermission === false) return isZh ? "麦克风权限被拒绝。" : "Microphone permission denied.";
+    if (isRecording) return isZh ? "正在录音... 点击麦克风停止。" : "Recording... tap the mic to stop.";
     if (lastRecordingUri && recordingDuration != null) {
-      return `Last recording: ${recordingDuration}s (not sent anywhere yet)`;
+      return isZh
+        ? `上次录音：${recordingDuration}s（尚未发送）`
+        : `Last recording: ${recordingDuration}s (not sent anywhere yet)`;
     }
-    return "Tap the mic to ask your question by voice.";
+    return isZh
+      ? "点击麦克风，用语音提问。"
+      : "Tap the mic to ask your question by voice.";
   })();
+
+  // Simple localized puzzle text (keeps your existing fields)
+  const localizedTitle = puzzleData.title;
+  const localizedContent = puzzleData.content;
+  const localizedHint = puzzleData.hint;
+  const localizedFullAnswer = puzzleData.fullAnswer;
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Puzzle title */}
-        <Text style={styles.title}>{puzzleData.title}</Text>
+        <Text style={styles.title}>{localizedTitle}</Text>
         {/* 👇 Progress Bar */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBarBackground}>
@@ -289,13 +314,15 @@ const uploadAudioForTranscription = async (audioUri: string) => {
             />
           </View>
           <Text style={styles.progressText}>
-            {Math.round(completionPercent)}% solved
+            {isZh
+              ? `已完成 ${Math.round(completionPercent)}%`
+              : `${Math.round(completionPercent)}% solved`}
           </Text>
         </View>
 
         {/* Surface story */}
-        <Text style={styles.label}>Puzzle</Text>
-        <Text style={styles.surface}>{puzzleData.content}</Text>
+        <Text style={styles.label}>{isZh ? "谜题" : "Puzzle"}</Text>
+        <Text style={styles.surface}>{localizedContent}</Text>
 
         {/* Hint section */}
         <View style={styles.section}>
@@ -304,11 +331,15 @@ const uploadAudioForTranscription = async (audioUri: string) => {
             onPress={() => setShowHint((prev) => !prev)}
           >
             <Text style={styles.secondaryButtonText}>
-              {showHint ? "Hide Hint" : "Show Hint"}
+              {showHint
+                ? (isZh ? "隐藏提示" : "Hide Hint")
+                : (isZh ? "显示提示" : "Show Hint")}
             </Text>
           </TouchableOpacity>
 
-          {showHint && <Text style={styles.hintText}>{puzzleData.hint}</Text>}
+          {showHint && (
+            <Text style={styles.hintText}>{localizedHint}</Text>
+          )}
         </View>
 
         {/* Solution section */}
@@ -318,14 +349,18 @@ const uploadAudioForTranscription = async (audioUri: string) => {
             onPress={() => setShowSolution((prev) => !prev)}
           >
             <Text style={styles.primaryButtonText}>
-              {showSolution ? "Hide Solution" : "Reveal Full Story"}
+              {showSolution
+                ? (isZh ? "隐藏答案" : "Hide Solution")
+                : (isZh ? "显示完整故事" : "Reveal Full Story")}
             </Text>
           </TouchableOpacity>
 
           {showSolution && (
             <>
-              <Text style={styles.label}>Full Story</Text>
-              <Text style={styles.solutionText}>{puzzleData.fullAnswer}</Text>
+              <Text style={styles.label}>
+                {isZh ? "完整故事" : "Full Story"}
+              </Text>
+              <Text style={styles.solutionText}>{localizedFullAnswer}</Text>
             </>
           )}
         </View>
@@ -338,9 +373,13 @@ const uploadAudioForTranscription = async (audioUri: string) => {
             evaluationResult === 'yes' && styles.evaluationTextSuccess,
             (evaluationResult === 'no' || evaluationResult === 'Error evaluating answer.') && styles.evaluationTextFailure,
           ]}>
-            {evaluationResult === 'Evaluating...' 
-              ? 'Analyzing your question...' 
-              : `Evaluation: ${evaluationResult.toUpperCase()}`}
+            {evaluationResult === 'Evaluating...'
+              ? (isZh ? '正在分析你的问题...' : 'Analyzing your question...')
+              : (
+                isZh
+                  ? `评估结果: ${evaluationResult.toUpperCase()}`
+                  : `Evaluation: ${evaluationResult.toUpperCase()}`
+              )}
           </Text>
         )}
       </View>

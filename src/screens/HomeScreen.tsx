@@ -49,6 +49,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 type MeResponse = {
   id: string;
   email: string;
+  // 👇 NEW: language preference from profile, e.g. "en" | "zh"
+  language?: "en" | "zh";
 };
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
@@ -56,11 +58,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dbPuzzles, setDbPuzzles] = useState<Puzzle[]>([]);
+
+  // 👇 Determine language from profile (default to English)
+  const language = me?.language ?? "en";
+  const isZh = language === "zh";
+
   useEffect(() => {
     const loadProfile = async () => {
       try {
         const data = await fetchMe();
-        setMe(data);
+        setMe(data as MeResponse);
       } catch (err: any) {
         console.error("Failed to load /me:", err);
         setError(err.message ?? "Failed to load profile");
@@ -104,13 +111,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           {loadingProfile && !me && !error && (
             <View style={styles.profileRow}>
               <ActivityIndicator size="small" />
-              <Text style={styles.profileLoadingText}>Loading profile...</Text>
+              <Text style={styles.profileLoadingText}>
+                {isZh ? "正在加载个人信息..." : "Loading profile..."}
+              </Text>
             </View>
           )}
 
           {me && (
             <Text style={styles.userText}>
-              Signed in as <Text style={styles.userEmail}>{me.email}</Text>
+              {isZh ? "当前登录：" : "Signed in as "} 
+              <Text style={styles.userEmail}>{me.email}</Text>
             </Text>
           )}
 
@@ -118,12 +128,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Log out</Text>
+          <Text style={styles.logoutButtonText}>
+            {isZh ? "退出登录" : "Log out"}
+          </Text>
         </TouchableOpacity>
       </View>
 
       <Text style={styles.subtitle}>
-        Choose a puzzle to start. Each one has its own story to uncover.
+        {isZh
+          ? "选择一个谜题开始，每个都有自己的故事等待你发掘。"
+          : "Choose a puzzle to start. Each one has its own story to uncover."
+        }
       </Text>
 
       <FlatList
@@ -139,7 +154,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.cardSurface} numberOfLines={2}>
               {item.content}
             </Text>
-            <Text style={styles.cardHintLabel}>Tap to start this puzzle</Text>
+            <Text style={styles.cardHintLabel}>
+              {isZh ? "点击开始这个谜题" : "Tap to start this puzzle"}
+            </Text>
           </TouchableOpacity>
         )}
       />
