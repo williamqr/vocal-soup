@@ -15,6 +15,7 @@ import { Audio } from "expo-av";
 import { Puzzle } from "../data/puzzles";
 import { getPuzzleFromDB } from "../services/data";
 import { useAuth } from "../context/AuthContext";
+import { storyApi, ApiError } from "../lib/api";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Game">;
 
@@ -66,29 +67,14 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const startNewSession = async (userId: string) => {
     setIsLoadingSession(true);
     try {
-      console.log(`Starting new session for puzzle ${puzzleId} and user ${userId}`);
-      const response = await fetch(`https://backend-9hz3.onrender.com/story/start`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          puzzleId: puzzleId,
-          userId: userId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to start story session: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const newSessionId = data.storySessionId; // Assuming the backend returns { sessionId: '...' }
-      setSessionId(newSessionId);
-      console.log("New Session ID obtained:", newSessionId);
+      const data = await storyApi.startSession(puzzleId, userId);
+      setSessionId(data.storySessionId);
     } catch (error) {
-      console.error("Error starting new session:", error);
-      // You might want to show an error message to the user here
+      if (error instanceof ApiError) {
+        console.error(`API Error (${error.code}):`, error.message);
+      } else {
+        console.error("Error starting new session:", error);
+      }
     } finally {
       setIsLoadingSession(false);
     }
@@ -178,52 +164,31 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     return isZh ? `评估结果: ${evalResult}` : `Evaluation: ${evalResult.toUpperCase()}`;
   }, [isZh]);
 
-  // A helper function to upload the file to your backend server
+  // Upload audio file for transcription and evaluation
   const uploadAudioForTranscription = async (audioUri: string) => {
-    // 1. Create FormData object
-    const formData = new FormData();
-    setEvaluationResult('Evaluating...'); // 👈 Set a status message while waiting
-    // Determine the filename and mime type for the file
-    // Expo recordings are often m4a or wav, depending on your config.
-    const fileType = 'audio/m4a';
-    const fileName = `recording-${Date.now()}.m4a`;
+    if (!sessionId) {
+      setEvaluationResult("Error: No session ID");
+      return;
+    }
 
-    // 2. Append the file data.
-    // The format is crucial for React Native/Expo to upload files.
-    formData.append('audioFile', {
-      uri: audioUri,
-      type: fileType,
-      name: fileName,
-    } as any);
-
-    // 👇 include language so backend can run the correct STT/eval
-    formData.append('language', language);
+    setEvaluationResult("Evaluating...");
 
     try {
-      console.log("Uploading audio file to backend...", { sessionId, language });
-      // 3. Send the request to your backend's transcription endpoint
-      const response = await fetch(`https://backend-9hz3.onrender.com/chat/transcribe?sessionId=${sessionId}`, {
-        method: 'POST',
-        // No 'Content-Type': 'multipart/form-data' header is needed;
-        // fetch handles it automatically with the correct boundary when using FormData.
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed with status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("Transcription Result:", data.evaluation);
+      const data = await storyApi.transcribeAudio(sessionId, audioUri, language);
       setEvaluationResult(data.evaluation);
-      console.log("Transcription Completion:", data.completion);
-      setCompletionPercent(data.completion * 100); // expecting 0–100
-
-      // You can now set this text to a state variable (e.g., setTranscribedText(data.transcribedText))
-
+      setCompletionPercent(data.completion * 100);
     } catch (error) {
-      console.error("Error during file upload or transcription:", error);
-      setEvaluationResult("Error during transcription.");
+      if (error instanceof ApiError) {
+        console.error(`Transcription API Error (${error.code}):`, error.message);
+        setEvaluationResult(
+          error.code === "NETWORK"
+            ? (isZh ? "网络错误，请重试" : "Network error, please retry")
+            : (isZh ? "转录失败" : "Transcription failed")
+        );
+      } else {
+        console.error("Error during transcription:", error);
+        setEvaluationResult(isZh ? "转录出错" : "Error during transcription");
+      }
     }
   };
 
