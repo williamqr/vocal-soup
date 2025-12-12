@@ -1,5 +1,5 @@
-// src/screens/SettingsScreen.tsx
-import React, { useEffect, useState } from "react";
+// src/screens/UserSettingScreen.tsx
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,51 +7,28 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  ScrollView,
 } from "react-native";
-import { updateUserLanguage } from "../services/auth";
-import { fetchMe } from "../lib/apiClient";
-import { useIsFocused } from "@react-navigation/native";
+import { updateUserLanguage, signOut } from "../services/auth";
+import { useAuth } from "../context/AuthContext";
 
 export default function SettingsScreen({ navigation }: any) {
-  const [language, setLanguage] = useState<"en" | "zh">("en");
-  const [loading, setLoading] = useState(false);
+  const { user, language, isZh, setLanguage } = useAuth();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isFocused = useIsFocused(); // reload when screen focused
 
-  useEffect(() => {
-    let mounted = true;
-    const loadProfile = async () => {
-      setLoading(true);
-      try {
-        const profile: any = await fetchMe();
-        if (!mounted) return;
-        const lang = profile?.language ?? "en";
-        setLanguage(lang === "zh" ? "zh" : "en");
-      } catch (err: any) {
-        console.error("Failed to load profile in settings:", err);
-        setError(err.message ?? "Failed to load profile");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
+  const handleLanguageChange = async (lang: "en" | "zh") => {
+    if (lang === language) return; // No change needed
 
-    if (isFocused) loadProfile();
-
-    return () => {
-      mounted = false;
-    };
-  }, [isFocused]);
-
-  const handleSave = async (lang: "en" | "zh") => {
     setSaving(true);
     setError(null);
     try {
       await updateUserLanguage(lang);
-      // Refresh profile (so fetchMe / useAuth data will include updated language)
-      await fetchMe();
-      setLanguage(lang);
-      Alert.alert(lang === "zh" ? "已保存" : "Saved", lang === "zh" ? "语言已更新。" : "Language updated.");
+      setLanguage(lang); // Update context immediately
+      Alert.alert(
+        lang === "zh" ? "已保存" : "Saved",
+        lang === "zh" ? "语言已更新。" : "Language updated."
+      );
     } catch (err: any) {
       console.error("Failed to update language:", err);
       setError(err.message ?? "Failed to save language");
@@ -60,83 +37,178 @@ export default function SettingsScreen({ navigation }: any) {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
-        <Text style={{ marginTop: 8 }}>{language === "zh" ? "正在加载设置..." : "Loading settings..."}</Text>
-      </View>
+  const handleLogout = async () => {
+    Alert.alert(
+      isZh ? "退出登录" : "Log Out",
+      isZh ? "确定要退出登录吗？" : "Are you sure you want to log out?",
+      [
+        { text: isZh ? "取消" : "Cancel", style: "cancel" },
+        {
+          text: isZh ? "退出" : "Log Out",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await signOut();
+            } catch (err) {
+              console.error("Error during logout:", err);
+            }
+          },
+        },
+      ]
     );
-  }
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>{language === "zh" ? "设置" : "Settings"}</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Profile Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{isZh ? "账户" : "Account"}</Text>
+        <View style={styles.card}>
+          <View style={styles.profileRow}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {user?.email?.charAt(0).toUpperCase() ?? "?"}
+              </Text>
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.emailText}>{user?.email ?? "Unknown"}</Text>
+              <Text style={styles.memberText}>
+                {isZh ? "会员" : "Member"}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
 
-      <Text style={styles.label}>{language === "zh" ? "语言" : "Language"}</Text>
+      {/* Language Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{isZh ? "语言" : "Language"}</Text>
+        <View style={styles.card}>
+          <View style={styles.langRow}>
+            <TouchableOpacity
+              style={[
+                styles.langButton,
+                language === "en" && styles.langButtonSelected,
+              ]}
+              onPress={() => handleLanguageChange("en")}
+              disabled={saving}
+            >
+              <Text
+                style={[
+                  styles.langText,
+                  language === "en" && styles.langTextSelected,
+                ]}
+              >
+                English
+              </Text>
+            </TouchableOpacity>
 
-      <View style={styles.row}>
-        <TouchableOpacity
-          style={[
-            styles.langButton,
-            language === "en" && styles.langButtonSelected,
-          ]}
-          onPress={() => handleSave("en")}
-          disabled={saving}
-        >
-          <Text style={[styles.langText, language === "en" && styles.langTextSelected]}>English</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.langButton,
+                language === "zh" && styles.langButtonSelected,
+              ]}
+              onPress={() => handleLanguageChange("zh")}
+              disabled={saving}
+            >
+              <Text
+                style={[
+                  styles.langText,
+                  language === "zh" && styles.langTextSelected,
+                ]}
+              >
+                中文
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        <TouchableOpacity
-          style={[
-            styles.langButton,
-            language === "zh" && styles.langButtonSelected,
-          ]}
-          onPress={() => handleSave("zh")}
-          disabled={saving}
-        >
-          <Text style={[styles.langText, language === "zh" && styles.langTextSelected]}>中文</Text>
+          {saving && (
+            <View style={styles.savingRow}>
+              <ActivityIndicator size="small" color="#F97316" />
+              <Text style={styles.savingText}>
+                {isZh ? "正在保存..." : "Saving..."}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {error && <Text style={styles.errorText}>{error}</Text>}
+      </View>
+
+      {/* Logout Section */}
+      <View style={styles.section}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>{isZh ? "退出登录" : "Log Out"}</Text>
         </TouchableOpacity>
       </View>
 
-      {saving && (
-        <View style={{ marginTop: 12 }}>
-          <ActivityIndicator />
-          <Text style={{ marginTop: 8 }}>
-            {language === "zh" ? "正在保存..." : "Saving..."}
-          </Text>
-        </View>
-      )}
-
-      {error && <Text style={styles.errorText}>{error}</Text>}
-    </View>
+      {/* App Info */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Vocal Soup v1.0.0</Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#050816",
+  },
+  content: {
     padding: 16,
-    backgroundColor: "#050816",
+    paddingBottom: 40,
   },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#050816",
-  },
-  heading: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "700",
+  section: {
     marginBottom: 24,
   },
-  label: {
+  sectionTitle: {
     color: "#9CA3AF",
-    fontSize: 14,
-    marginBottom: 12,
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    marginBottom: 8,
+    marginLeft: 4,
   },
-  row: {
+  card: {
+    backgroundColor: "#111827",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#1F2937",
+  },
+  profileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#F97316",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  avatarText: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  emailText: {
+    color: "#F9FAFB",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  memberText: {
+    color: "#6B7280",
+    fontSize: 13,
+    marginTop: 2,
+  },
+  langRow: {
     flexDirection: "row",
     gap: 12,
   },
@@ -146,7 +218,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#374151",
-    backgroundColor: "#111827",
+    backgroundColor: "#1F2937",
     alignItems: "center",
   },
   langButtonSelected: {
@@ -160,8 +232,42 @@ const styles = StyleSheet.create({
   langTextSelected: {
     color: "#fff",
   },
-  errorText: {
+  savingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 12,
+    gap: 8,
+  },
+  savingText: {
+    color: "#9CA3AF",
+    fontSize: 13,
+  },
+  errorText: {
+    marginTop: 8,
     color: "#F87171",
+    fontSize: 13,
+    marginLeft: 4,
+  },
+  logoutButton: {
+    backgroundColor: "#1F2937",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+  logoutText: {
+    color: "#F87171",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  footer: {
+    alignItems: "center",
+    marginTop: 24,
+  },
+  footerText: {
+    color: "#4B5563",
+    fontSize: 12,
   },
 });

@@ -10,6 +10,7 @@ type AuthContextType = {
   loading: boolean;
   language: Language;
   isZh: boolean;
+  setLanguage: (lang: Language) => void;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   language: "en",
   isZh: false,
+  setLanguage: () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -78,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, language, isZh }}>
+    <AuthContext.Provider value={{ user, loading, language, isZh, setLanguage }}>
       {children}
     </AuthContext.Provider>
   );
