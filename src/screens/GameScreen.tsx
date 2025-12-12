@@ -1,6 +1,6 @@
 // src/screens/GameScreen.tsx
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -15,12 +15,24 @@ import { Audio } from "expo-av";
 import { Puzzle } from "../data/puzzles";
 import { getPuzzleFromDB } from "../services/data";
 import { useAuth } from "../context/AuthContext"; // 👈 New Import
+import { fetchMe } from "../lib/apiClient";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Game">;
 
+
+type MeResponse = {
+  id: string;
+  email: string;
+  // 👇 NEW: language preference from profile, e.g. "en" | "zh"
+  language?: "en" | "zh";
+};
+
+
+
 export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const { puzzleId } = route.params;
-
+  const [language, setLanguage] = useState<"en" | "zh">("en"); // Default to English
+  const isZh = language === "zh"; // Derived from language, no need for separate state
   const [puzzleData, setPuzzleData] = useState<Puzzle | null>(null);
 
   const [showHint, setShowHint] = useState(false);
@@ -42,9 +54,6 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const currentUserId = user?.id; // 👈 The User ID is now easily accessible
 
   // 👇 NEW: language from user profile (set elsewhere, e.g. login/settings)
-  const language = (user as any)?.language ?? "en";
-  const isZh = language === "zh";
-
   // Ask for mic permission once on mount
   useEffect(() => {
     (async () => {
@@ -53,7 +62,20 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       const data = await getPuzzleFromDB(puzzleId);
       setPuzzleData(data);
     })();
-  }, []);
+  }, [puzzleId]);
+
+    useEffect(() => {
+      const loadProfile = async () => {
+            try {
+              const data = await fetchMe() as MeResponse;
+              setLanguage(data.language ?? "en");
+              console.log("GameScreen loaded profile language:", data.language ?? "en");
+            } catch (err: any) {
+              console.error("Failed to load /me:", err);
+            }
+          };
+          loadProfile();
+    }, []);
 
   useEffect(() => {
     // Only proceed if auth is not loading and we have a User ID
@@ -135,6 +157,54 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
+  // A helper to pick localized fields from puzzleData
+  const pickLocalized = useCallback((obj: any, baseKey: string) => {
+    if (!obj) return "";
+    const zhVariants = [
+      `${baseKey}_zh`,
+      `${baseKey}Zh`,
+      `${baseKey}ZH`,
+      `${baseKey}_zh_cn`,
+      `${baseKey}ZhCN`,
+      `${baseKey}_zh_hans`,
+      `${baseKey}Zh_Hans`,
+    ];
+    if (isZh) {
+      for (const k of zhVariants) {
+        if (obj[k]) return obj[k];
+      }
+    }
+    // fallback attempts
+    return obj[baseKey] ?? obj[`${baseKey}_en`] ?? "";
+  }, [isZh]);
+
+  // A helper to map evaluation results to localized labels
+  const evalLabel = useCallback((evalResult: string | null) => {
+    if (!evalResult) return null;
+
+    // Normalize common statuses
+    const normalized = evalResult.trim().toLowerCase();
+
+    if (normalized === "evaluating..." || normalized === "evaluating") {
+      return isZh ? "正在分析你的问题..." : "Analyzing your question...";
+    }
+
+    if (normalized === "yes" || normalized === "correct" || normalized === "true") {
+      return isZh ? "评估结果：是" : `Evaluation: ${evalResult.toUpperCase()}`;
+    }
+
+    if (normalized === "no" || normalized === "incorrect" || normalized === "false") {
+      return isZh ? "评估结果：否" : `Evaluation: ${evalResult.toUpperCase()}`;
+    }
+
+    if (normalized.includes("error")) {
+      return isZh ? "评估错误" : "Error evaluating answer.";
+    }
+
+    // Default: show the raw string but localized prefix
+    return isZh ? `评估结果: ${evalResult}` : `Evaluation: ${evalResult.toUpperCase()}`;
+  }, [isZh]);
+
   // A helper function to upload the file to your backend server
   const uploadAudioForTranscription = async (audioUri: string) => {
     // 1. Create FormData object
@@ -153,8 +223,11 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       name: fileName,
     } as any);
 
+    // 👇 include language so backend can run the correct STT/eval
+    formData.append('language', language);
+
     try {
-      console.log("Uploading audio file to backend...");
+      console.log("Uploading audio file to backend...", { sessionId, language });
       // 3. Send the request to your backend's transcription endpoint
       const response = await fetch(`https://backend-9hz3.onrender.com/chat/transcribe?sessionId=${sessionId}`, {
         method: 'POST',
@@ -216,45 +289,16 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  if (!puzzleData || isLoadingSession) {
+  // Consolidated loading state check
+  if (authLoading || isLoadingSession || !puzzleData) {
+    const loadingMessage = authLoading
+      ? (isZh ? "正在验证用户身份..." : "Authenticating user...")
+      : (isZh ? "正在加载谜题并启动会话..." : "Loading puzzle and starting session...");
+
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#F97316" />
-        <Text style={styles.loadingText}>
-          {isZh ? "正在加载谜题并启动会话..." : "Loading puzzle and starting session..."}
-        </Text>
-      </View>
-    );
-  }
-
-  // If puzzle not found, show fallback UI
-  if (!puzzleData) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>
-          {isZh ? "未找到谜题。" : "Puzzle not found."}
-        </Text>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.primaryButtonText}>
-            {isZh ? "返回列表" : "Back to list"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  if (!puzzleData || authLoading || isLoadingSession) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#F97316" />
-        <Text style={styles.loadingText}>
-          {authLoading
-            ? (isZh ? "正在验证用户身份..." : "Authenticating user...")
-            : (isZh ? "正在加载谜题并启动会话..." : "Loading puzzle and starting session...")}
-        </Text>
+        <Text style={styles.loadingText}>{loadingMessage}</Text>
       </View>
     );
   }
@@ -292,11 +336,11 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       : "Tap the mic to ask your question by voice.";
   })();
 
-  // Simple localized puzzle text (keeps your existing fields)
-  const localizedTitle = puzzleData.title;
-  const localizedContent = puzzleData.content;
-  const localizedHint = puzzleData.hint;
-  const localizedFullAnswer = puzzleData.fullAnswer;
+  // Localized puzzle text (checks for zh variants if available)
+  const localizedTitle = pickLocalized(puzzleData as any, "title") || puzzleData.title;
+  const localizedContent = pickLocalized(puzzleData as any, "content") || puzzleData.content;
+  const localizedHint = pickLocalized(puzzleData as any, "hint") || puzzleData.hint;
+  const localizedFullAnswer = pickLocalized(puzzleData as any, "fullAnswer") || puzzleData.fullAnswer;
 
   return (
     <View style={styles.container}>
@@ -370,16 +414,10 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         {evaluationResult && (
           <Text style={[
             styles.evaluationText,
-            evaluationResult === 'yes' && styles.evaluationTextSuccess,
-            (evaluationResult === 'no' || evaluationResult === 'Error evaluating answer.') && styles.evaluationTextFailure,
+            evaluationResult?.toLowerCase() === 'yes' && styles.evaluationTextSuccess,
+            (evaluationResult?.toLowerCase() === 'no' || evaluationResult?.toLowerCase().includes('error')) && styles.evaluationTextFailure,
           ]}>
-            {evaluationResult === 'Evaluating...'
-              ? (isZh ? '正在分析你的问题...' : 'Analyzing your question...')
-              : (
-                isZh
-                  ? `评估结果: ${evaluationResult.toUpperCase()}`
-                  : `Evaluation: ${evaluationResult.toUpperCase()}`
-              )}
+            {evalLabel(evaluationResult)}
           </Text>
         )}
       </View>
@@ -562,3 +600,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   }
 });
+
+export default GameScreen;

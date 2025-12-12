@@ -68,6 +68,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       try {
         const data = await fetchMe();
         setMe(data as MeResponse);
+        console.log(me?.language ?? "en");
       } catch (err: any) {
         console.error("Failed to load /me:", err);
         setError(err.message ?? "Failed to load profile");

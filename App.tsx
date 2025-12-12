@@ -22,7 +22,7 @@ export type RootStackParamList = {
   Signup: undefined;
   Home: undefined;
   Settings: undefined; // <-- added
-  Game: { puzzleId: string };
+  Game: { puzzleId: string }; // <-- updated
   Story: {
     finalStory: string;
     openingText?: string;

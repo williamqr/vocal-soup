@@ -32,13 +32,19 @@ async function getAuthHeader() {
  * it with `language` when possible.
  */
 export async function fetchMe() {
+  // 1. Get session (contains user + metadata)
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session?.access_token) throw new Error("Not logged in");
+  if (!session?.access_token || !session.user) throw new Error("Not logged in");
 
-  // Try backend /me first
+  // Helper to safely extract language from the session we already have
+  const getLanguageFromSession = () => {
+    return session.user.user_metadata?.language;
+  };
+
+  // 2. Try backend /me
   try {
     const res = await fetch(`${API_BASE}/me`, {
       headers: {
@@ -47,59 +53,42 @@ export async function fetchMe() {
     });
 
     if (!res.ok) {
-      // If backend returns an error, fall through to Supabase fallback below
       const text = await res.text().catch(() => "");
       console.warn(`/me returned ${res.status}: ${text}`);
     } else {
       const json = await res.json();
-      // If backend already returns language, just return it
       if (json && (json.language || json.language === "")) {
         return json;
       }
 
-      // Otherwise try to enrich backend response with Supabase user metadata
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        const languageFromMeta = (user as any)?.user_metadata?.language;
-        if (languageFromMeta) {
-          return {
-            ...json,
-            language: languageFromMeta,
-          };
-        }
-      } catch (err) {
-        // ignore and return backend response
+      // B. If backend is missing language, enrich it using the SESSION (No extra API call!)
+      const languageFromMeta = getLanguageFromSession();
+      
+      if (languageFromMeta) {
+        return {
+          ...json,
+          language: languageFromMeta,
+        };
       }
 
-      // Backend response with no language — return it as-is
-      return json;
+      // Return backend response as-is if no language found anywhere
+      return json; 
     }
   } catch (err) {
     console.warn("Error calling backend /me:", err);
-    // fall through to Supabase fallback
   }
-
-  // Fallback: read user directly from Supabase client-side and expose minimal shape
+  
   try {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
+    const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error) throw error;
     if (!user) throw new Error("No user available from Supabase");
 
-    const fallbackProfile: any = {
+    return {
       id: user.id,
-      email: (user.email as string) || null,
-      // read language from user metadata if present; otherwise default to 'en'
-      language: (user as any)?.user_metadata?.language ?? "en",
+      email: user.email || null,
+      language: user.user_metadata?.language ?? "en", // Correctly fetches your setting
     };
-
-    return fallbackProfile;
   } catch (err: any) {
     console.error("Unable to get user from Supabase as fallback:", err);
     throw new Error("Failed to fetch profile from backend and Supabase");
