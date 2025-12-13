@@ -1,5 +1,4 @@
 // src/screens/GameScreen.tsx
-
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
@@ -7,7 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  Animated,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
@@ -16,10 +16,9 @@ import { Puzzle } from "../data/puzzles";
 import { getPuzzleFromDB } from "../services/data";
 import { useAuth } from "../context/AuthContext";
 import { storyApi, ApiError } from "../lib/api";
+import { colors, spacing, borderRadius, typography, shadows } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Game">;
-
-
 
 export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const { puzzleId } = route.params;
@@ -40,8 +39,30 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const [recordingDuration, setRecordingDuration] = useState<number | null>(null);
 
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Ask for mic permission and load puzzle on mount
+  // Pulse animation for recording state
+  useEffect(() => {
+    if (isRecording) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isRecording, pulseAnim]);
+
   useEffect(() => {
     (async () => {
       const { status } = await Audio.requestPermissionsAsync();
@@ -52,15 +73,10 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [puzzleId]);
 
   useEffect(() => {
-    // Only proceed if auth is not loading and we have a User ID
     if (!authLoading && currentUserId && !sessionId) {
-      // Check if currentUserId is defined, if not, the user is not logged in.
-      // You may navigate away or show an error if (user === null)
       startNewSession(currentUserId);
     } else if (!authLoading && !currentUserId) {
-      // Handle case where user is not logged in
       console.warn("User is not logged in. Cannot start game session.");
-      // Consider navigating to login screen here
     }
   }, [authLoading, currentUserId]);
 
@@ -82,7 +98,6 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const startRecording = async () => {
     try {
-      // Ensure permission (in case useEffect hasn't finished yet)
       if (!hasPermission) {
         const { status } = await Audio.requestPermissionsAsync();
         if (status !== "granted") {
@@ -93,10 +108,9 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         setHasPermission(true);
       }
 
-      // Required on iOS to allow recording
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
-        playsInSilentModeIOS: true
+        playsInSilentModeIOS: true,
       });
 
       setIsRecording(true);
@@ -109,62 +123,61 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       await recording.startAsync();
 
       recordingRef.current = recording;
-      console.log("Recording started");
     } catch (error) {
       console.error("Error starting recording", error);
       setIsRecording(false);
     }
   };
 
-  // A helper to pick localized fields from puzzleData
-  const pickLocalized = useCallback((obj: any, baseKey: string) => {
-    if (!obj) return "";
-    const zhVariants = [
-      `${baseKey}_zh`,
-      `${baseKey}Zh`,
-      `${baseKey}ZH`,
-      `${baseKey}_zh_cn`,
-      `${baseKey}ZhCN`,
-      `${baseKey}_zh_hans`,
-      `${baseKey}Zh_Hans`,
-    ];
-    if (isZh) {
-      for (const k of zhVariants) {
-        if (obj[k]) return obj[k];
+  const pickLocalized = useCallback(
+    (obj: any, baseKey: string) => {
+      if (!obj) return "";
+      const zhVariants = [
+        `${baseKey}_zh`,
+        `${baseKey}Zh`,
+        `${baseKey}ZH`,
+        `${baseKey}_zh_cn`,
+        `${baseKey}ZhCN`,
+        `${baseKey}_zh_hans`,
+        `${baseKey}Zh_Hans`,
+      ];
+      if (isZh) {
+        for (const k of zhVariants) {
+          if (obj[k]) return obj[k];
+        }
       }
-    }
-    // fallback attempts
-    return obj[baseKey] ?? obj[`${baseKey}_en`] ?? "";
-  }, [isZh]);
+      return obj[baseKey] ?? obj[`${baseKey}_en`] ?? "";
+    },
+    [isZh]
+  );
 
-  // A helper to map evaluation results to localized labels
-  const evalLabel = useCallback((evalResult: string | null) => {
-    if (!evalResult) return null;
+  const evalLabel = useCallback(
+    (evalResult: string | null) => {
+      if (!evalResult) return null;
 
-    // Normalize common statuses
-    const normalized = evalResult.trim().toLowerCase();
+      const normalized = evalResult.trim().toLowerCase();
 
-    if (normalized === "evaluating..." || normalized === "evaluating") {
-      return isZh ? "正在分析你的问题..." : "Analyzing your question...";
-    }
+      if (normalized === "evaluating..." || normalized === "evaluating") {
+        return isZh ? "正在分析你的问题..." : "Analyzing your question...";
+      }
 
-    if (normalized === "yes" || normalized === "correct" || normalized === "true") {
-      return isZh ? "评估结果：是" : `Evaluation: ${evalResult.toUpperCase()}`;
-    }
+      if (normalized === "yes" || normalized === "correct" || normalized === "true") {
+        return isZh ? "是的！" : "YES!";
+      }
 
-    if (normalized === "no" || normalized === "incorrect" || normalized === "false") {
-      return isZh ? "评估结果：否" : `Evaluation: ${evalResult.toUpperCase()}`;
-    }
+      if (normalized === "no" || normalized === "incorrect" || normalized === "false") {
+        return isZh ? "不是" : "NO";
+      }
 
-    if (normalized.includes("error")) {
-      return isZh ? "评估错误" : "Error evaluating answer.";
-    }
+      if (normalized.includes("error")) {
+        return isZh ? "评估错误" : "Error evaluating";
+      }
 
-    // Default: show the raw string but localized prefix
-    return isZh ? `评估结果: ${evalResult}` : `Evaluation: ${evalResult.toUpperCase()}`;
-  }, [isZh]);
+      return isZh ? `${evalResult}` : `${evalResult.toUpperCase()}`;
+    },
+    [isZh]
+  );
 
-  // Upload audio file for transcription and evaluation
   const uploadAudioForTranscription = async (audioUri: string) => {
     if (!sessionId) {
       setEvaluationResult("Error: No session ID");
@@ -182,8 +195,12 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         console.error(`Transcription API Error (${error.code}):`, error.message);
         setEvaluationResult(
           error.code === "NETWORK"
-            ? (isZh ? "网络错误，请重试" : "Network error, please retry")
-            : (isZh ? "转录失败" : "Transcription failed")
+            ? isZh
+              ? "网络错误，请重试"
+              : "Network error, please retry"
+            : isZh
+            ? "转录失败"
+            : "Transcription failed"
         );
       } else {
         console.error("Error during transcription:", error);
@@ -207,13 +224,10 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       }
       const status = await recording.getStatusAsync();
       if (status.isDoneRecording && status.durationMillis != null) {
-        setRecordingDuration(Math.floor(status.durationMillis / 1000)); // seconds
+        setRecordingDuration(Math.floor(status.durationMillis / 1000));
       }
 
       recordingRef.current = null;
-      console.log("Recording stopped, URI:", uri);
-
-      // 👉 Later: send `uri` to your backend from here.
     } catch (error) {
       console.error("Error stopping recording", error);
     }
@@ -227,66 +241,102 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  // Consolidated loading state check
+  // Loading state
   if (authLoading || isLoadingSession || !puzzleData) {
     const loadingMessage = authLoading
-      ? (isZh ? "正在验证用户身份..." : "Authenticating user...")
-      : (isZh ? "正在加载谜题并启动会话..." : "Loading puzzle and starting session...");
+      ? isZh
+        ? "正在验证用户身份..."
+        : "Authenticating..."
+      : isZh
+      ? "正在加载谜题..."
+      : "Loading puzzle...";
 
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#F97316" />
-        <Text style={styles.loadingText}>{loadingMessage}</Text>
+      <View style={styles.loadingContainer}>
+        <View style={styles.loadingCard}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>{loadingMessage}</Text>
+        </View>
       </View>
     );
   }
 
-  // Handle case where user is NOT logged in but auth is done loading
+  // Not logged in
   if (!currentUserId) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>
-          {isZh ? "用户未登录。" : "User not logged in."}
-        </Text>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => navigation.navigate('Login')} // Assuming you have a login screen
-        >
-          <Text style={styles.primaryButtonText}>
-            {isZh ? "前往登录" : "Go to Login"}
+      <View style={styles.loadingContainer}>
+        <View style={styles.errorCard}>
+          <Text style={styles.errorIcon}>🔒</Text>
+          <Text style={styles.errorTitle}>
+            {isZh ? "需要登录" : "Login Required"}
           </Text>
-        </TouchableOpacity>
+          <Text style={styles.errorMessage}>
+            {isZh ? "请登录以继续游戏" : "Please log in to continue playing"}
+          </Text>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate("Login")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.primaryButtonText}>
+              {isZh ? "前往登录" : "Go to Login"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
   const micStatusText = (() => {
-    if (isLoadingSession) return isZh ? "正在初始化游戏会话..." : "Initializing game session...";
-    if (hasPermission === false) return isZh ? "麦克风权限被拒绝。" : "Microphone permission denied.";
-    if (isRecording) return isZh ? "正在录音... 点击麦克风停止。" : "Recording... tap the mic to stop.";
-    if (lastRecordingUri && recordingDuration != null) {
-      return isZh
-        ? `上次录音：${recordingDuration}s（尚未发送）`
-        : `Last recording: ${recordingDuration}s (not sent anywhere yet)`;
-    }
-    return isZh
-      ? "点击麦克风，用语音提问。"
-      : "Tap the mic to ask your question by voice.";
+    if (isLoadingSession)
+      return isZh ? "正在初始化..." : "Initializing...";
+    if (hasPermission === false)
+      return isZh ? "麦克风权限被拒绝" : "Microphone permission denied";
+    if (isRecording)
+      return isZh ? "正在录音... 点击停止" : "Recording... tap to stop";
+    return isZh ? "点击麦克风提问" : "Tap to ask a question";
   })();
 
-  // Localized puzzle text (checks for zh variants if available)
-  const localizedTitle = pickLocalized(puzzleData as any, "title") || puzzleData.title;
-  const localizedContent = pickLocalized(puzzleData as any, "content") || puzzleData.content;
-  const localizedHint = pickLocalized(puzzleData as any, "hint") || puzzleData.hint;
-  const localizedFullAnswer = pickLocalized(puzzleData as any, "fullAnswer") || puzzleData.fullAnswer;
+  const localizedTitle =
+    pickLocalized(puzzleData as any, "title") || puzzleData.title;
+  const localizedContent =
+    pickLocalized(puzzleData as any, "content") || puzzleData.content;
+  const localizedHint =
+    pickLocalized(puzzleData as any, "hint") || puzzleData.hint;
+  const localizedFullAnswer =
+    pickLocalized(puzzleData as any, "fullAnswer") || puzzleData.fullAnswer;
+
+  const getEvaluationStyle = () => {
+    if (!evaluationResult) return {};
+    const normalized = evaluationResult.toLowerCase();
+    if (normalized === "yes" || normalized === "correct" || normalized === "true") {
+      return { backgroundColor: "rgba(16, 185, 129, 0.15)", borderColor: colors.success };
+    }
+    if (normalized === "no" || normalized === "incorrect" || normalized === "false") {
+      return { backgroundColor: "rgba(248, 113, 113, 0.15)", borderColor: colors.error };
+    }
+    return {};
+  };
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Puzzle title */}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Title */}
         <Text style={styles.title}>{localizedTitle}</Text>
-        {/* 👇 Progress Bar */}
-        <View style={styles.progressContainer}>
+
+        {/* Progress Section */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressLabel}>
+              {isZh ? "进度" : "Progress"}
+            </Text>
+            <Text style={styles.progressPercent}>
+              {Math.round(completionPercent)}%
+            </Text>
+          </View>
           <View style={styles.progressBarBackground}>
             <View
               style={[
@@ -295,87 +345,119 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
               ]}
             />
           </View>
-          <Text style={styles.progressText}>
-            {isZh
-              ? `已完成 ${Math.round(completionPercent)}%`
-              : `${Math.round(completionPercent)}% solved`}
-          </Text>
         </View>
 
-        {/* Surface story */}
-        <Text style={styles.label}>{isZh ? "谜题" : "Puzzle"}</Text>
-        <Text style={styles.surface}>{localizedContent}</Text>
+        {/* Puzzle Content */}
+        <View style={styles.puzzleCard}>
+          <Text style={styles.sectionLabel}>{isZh ? "谜题" : "Puzzle"}</Text>
+          <Text style={styles.puzzleContent}>{localizedContent}</Text>
+        </View>
 
-        {/* Hint section */}
-        <View style={styles.section}>
+        {/* Hint Section */}
+        <View style={styles.toggleSection}>
           <TouchableOpacity
-            style={styles.secondaryButton}
+            style={[styles.toggleButton, showHint && styles.toggleButtonActive]}
             onPress={() => setShowHint((prev) => !prev)}
+            activeOpacity={0.7}
           >
-            <Text style={styles.secondaryButtonText}>
+            <Text style={styles.toggleIcon}>{showHint ? "🙈" : "💡"}</Text>
+            <Text
+              style={[
+                styles.toggleButtonText,
+                showHint && styles.toggleButtonTextActive,
+              ]}
+            >
               {showHint
-                ? (isZh ? "隐藏提示" : "Hide Hint")
-                : (isZh ? "显示提示" : "Show Hint")}
+                ? isZh
+                  ? "隐藏提示"
+                  : "Hide Hint"
+                : isZh
+                ? "显示提示"
+                : "Show Hint"}
             </Text>
           </TouchableOpacity>
 
           {showHint && (
-            <Text style={styles.hintText}>{localizedHint}</Text>
+            <View style={styles.revealedContent}>
+              <Text style={styles.revealedText}>{localizedHint}</Text>
+            </View>
           )}
         </View>
 
-        {/* Solution section */}
-        <View style={styles.section}>
+        {/* Solution Section */}
+        <View style={styles.toggleSection}>
           <TouchableOpacity
-            style={styles.primaryButton}
+            style={[
+              styles.toggleButton,
+              styles.solutionButton,
+              showSolution && styles.solutionButtonActive,
+            ]}
             onPress={() => setShowSolution((prev) => !prev)}
+            activeOpacity={0.7}
           >
-            <Text style={styles.primaryButtonText}>
+            <Text style={styles.toggleIcon}>{showSolution ? "🙈" : "📖"}</Text>
+            <Text
+              style={[
+                styles.toggleButtonText,
+                styles.solutionButtonText,
+                showSolution && styles.toggleButtonTextActive,
+              ]}
+            >
               {showSolution
-                ? (isZh ? "隐藏答案" : "Hide Solution")
-                : (isZh ? "显示完整故事" : "Reveal Full Story")}
+                ? isZh
+                  ? "隐藏答案"
+                  : "Hide Solution"
+                : isZh
+                ? "显示完整故事"
+                : "Reveal Full Story"}
             </Text>
           </TouchableOpacity>
 
           {showSolution && (
-            <>
-              <Text style={styles.label}>
+            <View style={[styles.revealedContent, styles.solutionContent]}>
+              <Text style={styles.solutionLabel}>
                 {isZh ? "完整故事" : "Full Story"}
               </Text>
-              <Text style={styles.solutionText}>{localizedFullAnswer}</Text>
-            </>
+              <Text style={styles.revealedText}>{localizedFullAnswer}</Text>
+            </View>
           )}
         </View>
       </ScrollView>
 
-      <View style={styles.evaluationContainer}>
-        {evaluationResult && (
-          <Text style={[
-            styles.evaluationText,
-            evaluationResult?.toLowerCase() === 'yes' && styles.evaluationTextSuccess,
-            (evaluationResult?.toLowerCase() === 'no' || evaluationResult?.toLowerCase().includes('error')) && styles.evaluationTextFailure,
-          ]}>
-            {evalLabel(evaluationResult)}
-          </Text>
-        )}
-      </View>
+      {/* Evaluation Result */}
+      {evaluationResult && (
+        <View style={[styles.evaluationBanner, getEvaluationStyle()]}>
+          <Text style={styles.evaluationText}>{evalLabel(evaluationResult)}</Text>
+        </View>
+      )}
 
-      {/* Voice control area */}
+      {/* Voice Control */}
       <View style={styles.voiceContainer}>
         <Text style={styles.voiceStatusText}>{micStatusText}</Text>
 
-        <TouchableOpacity
-          style={[
-            styles.micButton,
-            isRecording && styles.micButtonRecording,
-            hasPermission === false && styles.micButtonDisabled
-          ]}
-          activeOpacity={0.8}
-          onPress={toggleRecording}
-          disabled={hasPermission === false}
-        >
-          <Text style={styles.micIcon}>🎤</Text>
-        </TouchableOpacity>
+        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+          <TouchableOpacity
+            style={[
+              styles.micButton,
+              isRecording && styles.micButtonRecording,
+              hasPermission === false && styles.micButtonDisabled,
+            ]}
+            activeOpacity={0.8}
+            onPress={toggleRecording}
+            disabled={hasPermission === false}
+          >
+            <Text style={styles.micIcon}>{isRecording ? "⏹️" : "🎤"}</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {isRecording && (
+          <View style={styles.recordingIndicator}>
+            <View style={styles.recordingDot} />
+            <Text style={styles.recordingText}>
+              {isZh ? "录音中" : "Recording"}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -384,159 +466,254 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#050816"
+    backgroundColor: colors.background,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 16
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
   },
-  // 👇 NEW styles
-  progressContainer: {
-    marginBottom: 16,
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.xl,
+  },
+  loadingCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xxl,
+    alignItems: "center",
+    gap: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  loadingText: {
+    color: colors.textTertiary,
+    fontSize: typography.md,
+  },
+  errorCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xxl,
+    alignItems: "center",
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    maxWidth: 300,
+  },
+  errorIcon: {
+    fontSize: 48,
+    marginBottom: spacing.sm,
+  },
+  errorTitle: {
+    fontSize: typography.xl,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+  },
+  errorMessage: {
+    fontSize: typography.base,
+    color: colors.textMuted,
+    textAlign: "center",
+  },
+  title: {
+    fontSize: typography.xxl,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
+  },
+  progressSection: {
+    marginBottom: spacing.xl,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  progressLabel: {
+    fontSize: typography.sm,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  progressPercent: {
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+    color: colors.primary,
   },
   progressBarBackground: {
     width: "100%",
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: "#1F2937",
+    height: 8,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surfaceLight,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    borderRadius: 999,
-    backgroundColor: "#F97316",
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
   },
-  progressText: {
-    marginTop: 6,
-    fontSize: 12,
-    color: "#9CA3AF",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-    marginBottom: 16
-  },
-  label: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginBottom: 4,
-    textTransform: "uppercase"
-  },
-  surface: {
-    fontSize: 18,
-    color: "#F9FAFB",
-    marginBottom: 20,
-    lineHeight: 24
-  },
-  section: {
-    marginBottom: 24
-  },
-  secondaryButton: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
+  puzzleCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: "#6B7280",
-    marginBottom: 8
+    borderColor: colors.border,
   },
-  secondaryButtonText: {
-    color: "#E5E7EB",
-    fontSize: 14,
-    fontWeight: "500"
+  sectionLabel: {
+    fontSize: typography.sm,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: spacing.md,
   },
-  hintText: {
-    fontSize: 16,
-    color: "#D1D5DB",
-    lineHeight: 22
+  puzzleContent: {
+    fontSize: typography.lg,
+    color: colors.textSecondary,
+    lineHeight: 26,
   },
-  primaryButton: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 999,
-    backgroundColor: "#F97316",
-    marginBottom: 8
+  toggleSection: {
+    marginBottom: spacing.lg,
   },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "600"
+  toggleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  solutionText: {
-    fontSize: 16,
-    color: "#E5E7EB",
+  toggleButtonActive: {
+    backgroundColor: colors.surfaceLight,
+    borderColor: colors.borderLight,
+  },
+  solutionButton: {
+    borderColor: colors.primary,
+    backgroundColor: "rgba(249, 115, 22, 0.1)",
+  },
+  solutionButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  toggleIcon: {
+    fontSize: 18,
+  },
+  toggleButtonText: {
+    fontSize: typography.base,
+    color: colors.textTertiary,
+    fontWeight: typography.medium,
+  },
+  solutionButtonText: {
+    color: colors.primary,
+  },
+  toggleButtonTextActive: {
+    color: colors.textPrimary,
+  },
+  revealedContent: {
+    marginTop: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  solutionContent: {
+    borderColor: colors.primary,
+    borderLeftWidth: 3,
+  },
+  solutionLabel: {
+    fontSize: typography.sm,
+    color: colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: spacing.sm,
+  },
+  revealedText: {
+    fontSize: typography.base,
+    color: colors.textTertiary,
     lineHeight: 22,
-    marginTop: 4
   },
-  errorText: {
-    flex: 1,
-    color: "#FCA5A5",
-    textAlign: "center",
-    textAlignVertical: "center"
-  },
-  evaluationContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    alignItems: 'center',
+  evaluationBanner: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
   },
   evaluationText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#E5E7EB', // Default color
-  },
-  evaluationTextSuccess: {
-    color: '#10B981', // Green for 'yes'
-  },
-  evaluationTextFailure: {
-    color: '#F87171', // Red for 'no' or error
+    fontSize: typography.lg,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
   },
   voiceContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: "#1F2937",
+    borderTopColor: colors.border,
     alignItems: "center",
-    gap: 8
+    backgroundColor: colors.surface,
+    gap: spacing.md,
   },
   voiceStatusText: {
-    fontSize: 14,
-    color: "#9CA3AF",
+    fontSize: typography.sm,
+    color: colors.textMuted,
     textAlign: "center",
-    marginBottom: 4
   },
   micButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#F97316",
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.primary,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    ...shadows.lg,
   },
   micButtonRecording: {
-    backgroundColor: "#DC2626"
+    backgroundColor: colors.errorDark,
   },
   micButtonDisabled: {
-    opacity: 0.4
+    opacity: 0.4,
   },
   micIcon: {
-    fontSize: 32,
-    color: "#FFFFFF"
+    fontSize: 28,
   },
-  loadingText: {
-    color: '#E5E7EB',
-    marginTop: 10,
-    fontSize: 16,
+  recordingIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
-  sessionIdText: {
-    color: '#6B7280',
-    fontSize: 12,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    textAlign: 'center',
-  }
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.errorDark,
+  },
+  recordingText: {
+    fontSize: typography.sm,
+    color: colors.error,
+    fontWeight: typography.medium,
+  },
+  primaryButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.full,
+    marginTop: spacing.md,
+  },
+  primaryButtonText: {
+    color: colors.textPrimary,
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
+  },
 });
 
 export default GameScreen;

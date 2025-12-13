@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { updateUserLanguage, signOut } from "../services/auth";
 import { useAuth } from "../context/AuthContext";
+import { colors, spacing, borderRadius, typography, shadows } from "../theme";
 
 export default function SettingsScreen({ navigation }: any) {
   const { user, language, isZh, setLanguage } = useAuth();
@@ -18,13 +19,13 @@ export default function SettingsScreen({ navigation }: any) {
   const [error, setError] = useState<string | null>(null);
 
   const handleLanguageChange = async (lang: "en" | "zh") => {
-    if (lang === language) return; // No change needed
+    if (lang === language) return;
 
     setSaving(true);
     setError(null);
     try {
       await updateUserLanguage(lang);
-      setLanguage(lang); // Update context immediately
+      setLanguage(lang);
       Alert.alert(
         lang === "zh" ? "已保存" : "Saved",
         lang === "zh" ? "语言已更新。" : "Language updated."
@@ -60,6 +61,16 @@ export default function SettingsScreen({ navigation }: any) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>
+          {isZh ? "设置" : "Settings"}
+        </Text>
+        <Text style={styles.headerSubtitle}>
+          {isZh ? "管理你的账户和偏好设置" : "Manage your account and preferences"}
+        </Text>
+      </View>
+
       {/* Profile Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{isZh ? "账户" : "Account"}</Text>
@@ -72,9 +83,11 @@ export default function SettingsScreen({ navigation }: any) {
             </View>
             <View style={styles.profileInfo}>
               <Text style={styles.emailText}>{user?.email ?? "Unknown"}</Text>
-              <Text style={styles.memberText}>
-                {isZh ? "会员" : "Member"}
-              </Text>
+              <View style={styles.memberBadge}>
+                <Text style={styles.memberText}>
+                  {isZh ? "会员" : "Member"}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -84,6 +97,11 @@ export default function SettingsScreen({ navigation }: any) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{isZh ? "语言" : "Language"}</Text>
         <View style={styles.card}>
+          <Text style={styles.cardDescription}>
+            {isZh
+              ? "选择你的首选语言"
+              : "Choose your preferred language for the app"}
+          </Text>
           <View style={styles.langRow}>
             <TouchableOpacity
               style={[
@@ -92,7 +110,9 @@ export default function SettingsScreen({ navigation }: any) {
               ]}
               onPress={() => handleLanguageChange("en")}
               disabled={saving}
+              activeOpacity={0.7}
             >
+              <Text style={styles.langFlag}>🇺🇸</Text>
               <Text
                 style={[
                   styles.langText,
@@ -101,6 +121,7 @@ export default function SettingsScreen({ navigation }: any) {
               >
                 English
               </Text>
+              {language === "en" && <Text style={styles.checkmark}>✓</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -110,7 +131,9 @@ export default function SettingsScreen({ navigation }: any) {
               ]}
               onPress={() => handleLanguageChange("zh")}
               disabled={saving}
+              activeOpacity={0.7}
             >
+              <Text style={styles.langFlag}>🇨🇳</Text>
               <Text
                 style={[
                   styles.langText,
@@ -119,12 +142,13 @@ export default function SettingsScreen({ navigation }: any) {
               >
                 中文
               </Text>
+              {language === "zh" && <Text style={styles.checkmark}>✓</Text>}
             </TouchableOpacity>
           </View>
 
           {saving && (
             <View style={styles.savingRow}>
-              <ActivityIndicator size="small" color="#F97316" />
+              <ActivityIndicator size="small" color={colors.primary} />
               <Text style={styles.savingText}>
                 {isZh ? "正在保存..." : "Saving..."}
               </Text>
@@ -132,19 +156,47 @@ export default function SettingsScreen({ navigation }: any) {
           )}
         </View>
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
+        {error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* About Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{isZh ? "关于" : "About"}</Text>
+        <View style={styles.card}>
+          <View style={styles.aboutRow}>
+            <Text style={styles.aboutLabel}>{isZh ? "版本" : "Version"}</Text>
+            <Text style={styles.aboutValue}>1.0.0</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.aboutRow}>
+            <Text style={styles.aboutLabel}>{isZh ? "应用名称" : "App"}</Text>
+            <Text style={styles.aboutValue}>Vocal Soup</Text>
+          </View>
+        </View>
       </View>
 
       {/* Logout Section */}
       <View style={styles.section}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.logoutIcon}>🚪</Text>
           <Text style={styles.logoutText}>{isZh ? "退出登录" : "Log Out"}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* App Info */}
+      {/* Footer */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Vocal Soup v1.0.0</Text>
+        <Text style={styles.footerText}>
+          {isZh ? "用语音解开谜题" : "Solve mysteries with your voice"}
+        </Text>
+        <Text style={styles.footerBrand}>Vocal Soup</Text>
       </View>
     </ScrollView>
   );
@@ -153,121 +205,206 @@ export default function SettingsScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#050816",
+    backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxxl,
+  },
+  header: {
+    marginBottom: spacing.xl,
+  },
+  headerTitle: {
+    fontSize: typography.xxl,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  headerSubtitle: {
+    fontSize: typography.base,
+    color: colors.textMuted,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   sectionTitle: {
-    color: "#9CA3AF",
-    fontSize: 13,
-    fontWeight: "600",
+    color: colors.textMuted,
+    fontSize: typography.sm,
+    fontWeight: typography.semibold,
     textTransform: "uppercase",
-    marginBottom: 8,
-    marginLeft: 4,
+    letterSpacing: 0.5,
+    marginBottom: spacing.md,
+    marginLeft: spacing.xs,
   },
   card: {
-    backgroundColor: "#111827",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: "#1F2937",
+    borderColor: colors.border,
+  },
+  cardDescription: {
+    fontSize: typography.sm,
+    color: colors.textMuted,
+    marginBottom: spacing.md,
   },
   profileRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#F97316",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
+    marginRight: spacing.lg,
+    ...shadows.sm,
   },
   avatarText: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "700",
+    color: colors.textPrimary,
+    fontSize: typography.xl,
+    fontWeight: typography.bold,
   },
   profileInfo: {
     flex: 1,
   },
   emailText: {
-    color: "#F9FAFB",
-    fontSize: 16,
-    fontWeight: "600",
+    color: colors.textSecondary,
+    fontSize: typography.md,
+    fontWeight: typography.semibold,
+    marginBottom: spacing.xs,
+  },
+  memberBadge: {
+    backgroundColor: colors.surfaceLight,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.full,
+    alignSelf: "flex-start",
   },
   memberText: {
-    color: "#6B7280",
-    fontSize: 13,
-    marginTop: 2,
+    color: colors.textMuted,
+    fontSize: typography.xs,
+    fontWeight: typography.medium,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   langRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: spacing.md,
   },
   langButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#374151",
-    backgroundColor: "#1F2937",
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceLight,
   },
   langButtonSelected: {
-    backgroundColor: "#F97316",
-    borderColor: "#F97316",
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    ...shadows.sm,
+  },
+  langFlag: {
+    fontSize: 18,
   },
   langText: {
-    color: "#E5E7EB",
-    fontWeight: "600",
+    color: colors.textTertiary,
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
   },
   langTextSelected: {
-    color: "#fff",
+    color: colors.textPrimary,
+  },
+  checkmark: {
+    color: colors.textPrimary,
+    fontSize: typography.base,
+    fontWeight: typography.bold,
   },
   savingRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 12,
-    gap: 8,
+    marginTop: spacing.lg,
+    gap: spacing.sm,
   },
   savingText: {
-    color: "#9CA3AF",
-    fontSize: 13,
+    color: colors.textMuted,
+    fontSize: typography.sm,
+  },
+  errorBanner: {
+    backgroundColor: "rgba(248, 113, 113, 0.1)",
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.error,
   },
   errorText: {
-    marginTop: 8,
-    color: "#F87171",
-    fontSize: 13,
-    marginLeft: 4,
+    color: colors.error,
+    fontSize: typography.sm,
+  },
+  aboutRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+  },
+  aboutLabel: {
+    color: colors.textMuted,
+    fontSize: typography.base,
+  },
+  aboutValue: {
+    color: colors.textTertiary,
+    fontSize: typography.base,
+    fontWeight: typography.medium,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.sm,
   },
   logoutButton: {
-    backgroundColor: "#1F2937",
-    borderRadius: 12,
-    padding: 16,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: "#374151",
+    borderColor: colors.error,
+  },
+  logoutIcon: {
+    fontSize: 18,
   },
   logoutText: {
-    color: "#F87171",
-    fontSize: 16,
-    fontWeight: "600",
+    color: colors.error,
+    fontSize: typography.md,
+    fontWeight: typography.semibold,
   },
   footer: {
     alignItems: "center",
-    marginTop: 24,
+    marginTop: spacing.xl,
+    paddingTop: spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   footerText: {
-    color: "#4B5563",
-    fontSize: 12,
+    color: colors.textDim,
+    fontSize: typography.sm,
+    marginBottom: spacing.xs,
+  },
+  footerBrand: {
+    color: colors.textMuted,
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
   },
 });
