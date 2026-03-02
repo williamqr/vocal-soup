@@ -5,14 +5,14 @@ import { api } from "./client";
 
 // Response types
 export type StartSessionResponse = {
-  storySessionId: string;
-  openingText?: string;
+  sessionId: string;
 };
 
 export type TranscribeResponse = {
+  success: boolean;
+  transcript: string;
   evaluation: string;
   completion: number;
-  transcription?: string;
 };
 
 export type AppendStoryResponse = {
@@ -28,8 +28,8 @@ export const storyApi = {
   /**
    * Start a new story session for a puzzle
    */
-  startSession: (puzzleId: string, userId: string) =>
-    api.post<StartSessionResponse>("/story/start", { puzzleId, userId }),
+  startSession: (puzzleId: string, userId?: string) =>
+    api.post<StartSessionResponse>("/game/start", { puzzleId, userId }),
 
   /**
    * Upload audio and get transcription + evaluation

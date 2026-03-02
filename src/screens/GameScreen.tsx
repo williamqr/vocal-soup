@@ -84,7 +84,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     setIsLoadingSession(true);
     try {
       const data = await storyApi.startSession(puzzleId, userId);
-      setSessionId(data.storySessionId);
+      setSessionId(data.sessionId);
     } catch (error) {
       if (error instanceof ApiError) {
         console.error(`API Error (${error.code}):`, error.message);

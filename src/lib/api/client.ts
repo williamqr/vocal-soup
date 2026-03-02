@@ -1,7 +1,7 @@
 // src/lib/api/client.ts
 // Centralized API client with consistent error handling
 
-const API_BASE = "https://backend-9hz3.onrender.com";
+const API_BASE = "https://backend-rxsn.onrender.com";
 const IS_DEV = __DEV__;
 
 // Custom error class for API errors

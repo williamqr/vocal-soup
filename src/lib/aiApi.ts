@@ -7,10 +7,10 @@ import { api } from "./api";
 export type ChatResultType = "yes" | "no" | "not_sure";
 
 export async function startStorySession(params: {
-  puzzles: { id: string; title: string; summary: string }[];
-  storyPremise: string;
-}): Promise<{ storySessionId: string; openingText: string }> {
-  return api.post("/story/start", params);
+  puzzleId: string;
+  userId?: string;
+}): Promise<{ sessionId: string }> {
+  return api.post("/game/start", params);
 }
 
 export async function evaluateAnswer(params: {
