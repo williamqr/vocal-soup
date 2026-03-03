@@ -1,7 +1,7 @@
 // App.tsx
 
 import React from "react";
-import { View, ActivityIndicator, TouchableOpacity, Text } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
@@ -22,7 +22,7 @@ export type RootStackParamList = {
   Signup: undefined;
   Home: undefined;
   Settings: undefined; // <-- added
-  Game: { puzzleId: string }; // <-- updated
+  Game: { gameId: string; puzzleId: string };
   Story: {
     finalStory: string;
     openingText?: string;
@@ -34,9 +34,8 @@ const AuthStack = createNativeStackNavigator<RootStackParamList>();
 const AppStack = createNativeStackNavigator<RootStackParamList>();
 
 const commonScreenOptions = {
-  headerStyle: { backgroundColor: "#050816" },
-  headerTintColor: "#fff",
-  contentStyle: { backgroundColor: "#050816" },
+  headerShown: false,
+  contentStyle: { backgroundColor: "#FFFFFF" },
 };
 
 // Screens shown when NOT logged in
@@ -75,34 +74,10 @@ function AppStackNavigator() {
       <AppStack.Screen
         name="Home"
         component={HomeScreen}
-        // add headerRight to navigate to Settings
-        options={({ navigation }) => ({
-          title: "Vocal Soup",
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Settings")}
-              style={{ paddingHorizontal: 12, paddingVertical: 6 }}
-            >
-              <Text style={{ color: "#E5E7EB", fontWeight: "600" }}>Settings</Text>
-            </TouchableOpacity>
-          ),
-        })}
       />
-      <AppStack.Screen
-        name="Game"
-        component={GameScreen}
-        options={{ title: "Puzzle" }}
-      />
-      <AppStack.Screen
-        name="Story"
-        component={StoryScreen}
-        options={{ title: "Your Story" }}
-      />
-      <AppStack.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ title: "Settings" }}
-      />
+      <AppStack.Screen name="Game" component={GameScreen} />
+      <AppStack.Screen name="Story" component={StoryScreen} />
+      <AppStack.Screen name="Settings" component={SettingsScreen} />
     </AppStack.Navigator>
   );
 }

@@ -7,21 +7,21 @@ export const colors = {
   primaryLight: "#FB923C",
 
   // Background
-  background: "#050816",
-  surface: "#111827",
-  surfaceLight: "#1F2937",
+  background: "#FFFFFF",
+  surface: "#F9FAFB",
+  surfaceLight: "#F3F4F6",
 
   // Text
-  textPrimary: "#FFFFFF",
-  textSecondary: "#F9FAFB",
-  textTertiary: "#E5E7EB",
-  textMuted: "#9CA3AF",
-  textDim: "#6B7280",
+  textPrimary: "#111827",
+  textSecondary: "#1F2937",
+  textTertiary: "#374151",
+  textMuted: "#6B7280",
+  textDim: "#9CA3AF",
 
   // Borders
-  border: "#1F2937",
-  borderLight: "#374151",
-  borderDark: "#4B5563",
+  border: "#E5E7EB",
+  borderLight: "#F3F4F6",
+  borderDark: "#D1D5DB",
 
   // Status
   success: "#10B981",

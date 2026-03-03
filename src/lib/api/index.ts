@@ -6,5 +6,5 @@ export { storyApi } from "./storyApi";
 export { chatApi } from "./chatApi";
 
 // Re-export types
-export type { StartSessionResponse, TranscribeResponse, AppendStoryResponse, FinalStoryResponse } from "./storyApi";
-export type { ChatResultType, EvaluateResponse } from "./chatApi";
+export type { Game, PuzzleDetail, StartSessionResponse, EvaluateResponse, TranscribeResponse } from "./storyApi";
+export type { ChatResultType } from "./chatApi";

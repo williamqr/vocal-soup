@@ -12,20 +12,18 @@ import {
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { Audio } from "expo-av";
-import { Puzzle } from "../data/puzzles";
-import { getPuzzleFromDB } from "../services/data";
 import { useAuth } from "../context/AuthContext";
-import { storyApi, ApiError } from "../lib/api";
+import { storyApi, ApiError, type PuzzleDetail } from "../lib/api";
 import { colors, spacing, borderRadius, typography, shadows } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Game">;
 
 export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { puzzleId } = route.params;
+  const { gameId, puzzleId } = route.params;
   const { user, loading: authLoading, language, isZh } = useAuth();
   const currentUserId = user?.id;
 
-  const [puzzleData, setPuzzleData] = useState<Puzzle | null>(null);
+  const [puzzleData, setPuzzleData] = useState<PuzzleDetail | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState<string | null>(null);
@@ -67,7 +65,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     (async () => {
       const { status } = await Audio.requestPermissionsAsync();
       setHasPermission(status === "granted");
-      const data = await getPuzzleFromDB(puzzleId);
+      const data = await storyApi.getPuzzle(puzzleId);
       setPuzzleData(data);
     })();
   }, [puzzleId]);
@@ -83,7 +81,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const startNewSession = async (userId: string) => {
     setIsLoadingSession(true);
     try {
-      const data = await storyApi.startSession(puzzleId, userId);
+      const data = await storyApi.startSession(gameId, userId);
       setSessionId(data.sessionId);
     } catch (error) {
       if (error instanceof ApiError) {
@@ -470,7 +468,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.xxl + spacing.xl,
     paddingBottom: spacing.lg,
   },
   loadingContainer: {

@@ -3,36 +3,72 @@
 
 import { api } from "./client";
 
-// Response types
+// Game catalog item (metadata only, no puzzle content)
+export type Game = {
+  id: string;
+  status: "available" | "locked" | "premium";
+  level: number;
+  genre: string;
+  shortIntro: string;
+  puzzleId: string;
+  backgroundPicture?: string | null;
+  progress?: number;
+};
+
+// Full puzzle content (static, fetched when entering a game)
+export type PuzzleDetail = {
+  id: string;
+  title: string;
+  content: string;
+  hint: string;
+  fullAnswer: string;
+  parts: any;
+  backgroundPicture?: string | null;
+};
+
 export type StartSessionResponse = {
   sessionId: string;
 };
 
+export type EvaluateResponse = {
+  evaluation: string;
+  completion: number;
+};
+
 export type TranscribeResponse = {
-  success: boolean;
   transcript: string;
   evaluation: string;
   completion: number;
 };
 
-export type AppendStoryResponse = {
-  storyChunk: string;
-};
-
-export type FinalStoryResponse = {
-  finalStory: string;
-};
-
 // API functions
 export const storyApi = {
   /**
-   * Start a new story session for a puzzle
+   * Fetch all games for the catalog (Home Screen)
    */
-  startSession: (puzzleId: string, userId?: string) =>
-    api.post<StartSessionResponse>("/game/start", { puzzleId, userId }),
+  getGames: () =>
+    api.get<Game[]>("/v1/games"),
 
   /**
-   * Upload audio and get transcription + evaluation
+   * Fetch full puzzle content (Challenge Screen)
+   */
+  getPuzzle: (puzzleId: string) =>
+    api.get<PuzzleDetail>(`/v1/puzzles/${puzzleId}`),
+
+  /**
+   * Start a new game session
+   */
+  startSession: (gameId: string, userId?: string) =>
+    api.post<StartSessionResponse>("/v1/games/start", { gameId, userId }),
+
+  /**
+   * Evaluate a text answer against the session's puzzle
+   */
+  evaluateAnswer: (sessionId: string, userAnswer: string) =>
+    api.post<EvaluateResponse>("/v1/games/evaluate", { sessionId, userAnswer }),
+
+  /**
+   * Upload audio, transcribe, and evaluate
    */
   transcribeAudio: (sessionId: string, audioUri: string, language: string) => {
     const formData = new FormData();
@@ -47,27 +83,11 @@ export const storyApi = {
 
     formData.append("language", language);
 
-    return api.upload<TranscribeResponse>("/chat/transcribe", formData, {
+    return api.upload<TranscribeResponse>("/v1/games/transcribe", formData, {
       queryParams: { sessionId },
-      timeout: 60000, // 60s for audio upload
+      timeout: 60000,
     });
   },
-
-  /**
-   * Append to the story after a correct answer
-   */
-  appendStory: (params: {
-    storySessionId: string;
-    puzzleId: string;
-    userCorrectIdea: string;
-    puzzleSummary: string;
-  }) => api.post<AppendStoryResponse>("/story/append", params),
-
-  /**
-   * Get the final complete story
-   */
-  getFinalStory: (storySessionId: string) =>
-    api.post<FinalStoryResponse>("/story/final", { storySessionId }),
 };
 
 export default storyApi;
