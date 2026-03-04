@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Dimensions,
   ImageBackground,
+  Modal,
+  Pressable,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
@@ -19,6 +21,10 @@ import { colors, spacing, borderRadius, typography } from "../theme";
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - spacing.lg * 3) / 2;
 const CARD_HEIGHT = CARD_WIDTH * 1.4;
+
+const GAME_IMAGES: Record<string, any> = {
+  g_threeBrothers_01: require("../../assets/images/Gemini_Generated_Image_pahd7qpahd7qpahd.png"),
+};
 
 const CARD_COLORS = [
   "#1B3A2D",
@@ -38,6 +44,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { loading: authLoading, isZh } = useAuth();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   useEffect(() => {
     const loadGames = async () => {
@@ -56,60 +63,88 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleCardPress = (item: Game) => {
     if (item.status !== "available" || !item.puzzleId) return;
-    navigation.navigate("Game", { gameId: item.id, puzzleId: item.puzzleId });
+    setSelectedGame(item);
   };
+
+  const handlePlay = () => {
+    if (!selectedGame) return;
+    setSelectedGame(null);
+    navigation.navigate("Game", { gameId: selectedGame.id, puzzleId: selectedGame.puzzleId });
+  };
+
+  const renderCardInner = (item: Game, isLocked: boolean) => (
+    <>
+      {isLocked && <View style={styles.lockedOverlay} />}
+      <View style={styles.cardCenter}>
+        {isLocked && (
+          <Text style={styles.lockIcon}>
+            {item.status === "premium" ? "★" : "🔒"}
+          </Text>
+        )}
+      </View>
+      <View style={styles.cardBottom}>
+        <View style={styles.levelBadge}>
+          <Text style={styles.levelText}>{item.level}</Text>
+        </View>
+        <View style={styles.cardMeta}>
+          <Text style={styles.genreText} numberOfLines={1}>
+            {item.genre}
+          </Text>
+          <Text style={styles.introText} numberOfLines={1}>
+            {item.shortIntro}
+          </Text>
+        </View>
+      </View>
+    </>
+  );
 
   const renderCard = ({ item, index }: { item: Game; index: number }) => {
     const bgColor = CARD_COLORS[index % CARD_COLORS.length];
     const isLocked = item.status === "locked" || item.status === "premium";
+    const cardStyle = [styles.card, { backgroundColor: bgColor }];
+    const localImage = GAME_IMAGES[item.id];
 
     return (
       <TouchableOpacity
         activeOpacity={isLocked ? 1 : 0.8}
         onPress={() => handleCardPress(item)}
       >
-        <ImageBackground
-          source={{ uri: item.backgroundPicture || "" }}
-          style={[styles.card, { backgroundColor: bgColor }]}
-          imageStyle={styles.cardImage}
-        >
-          {/* Lock / premium overlay */}
-          {isLocked && <View style={styles.lockedOverlay} />}
-
-          {/* Center content */}
-          <View style={styles.cardCenter}>
-            {isLocked ? (
-              <Text style={styles.lockIcon}>
-                {item.status === "premium" ? "★" : "🔒"}
-              </Text>
-            ) : (
-              <View style={styles.playButton}>
-                <Text style={styles.playText}>{isZh ? "开始" : "Play"}</Text>
-              </View>
-            )}
+        {localImage ? (
+          <ImageBackground
+            source={localImage}
+            style={cardStyle}
+            imageStyle={styles.cardImage}
+          >
+            {renderCardInner(item, isLocked)}
+          </ImageBackground>
+        ) : (
+          <View style={cardStyle}>
+            {renderCardInner(item, isLocked)}
           </View>
-
-          {/* Bottom row */}
-          <View style={styles.cardBottom}>
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelText}>{item.level}</Text>
-            </View>
-            <View style={styles.cardMeta}>
-              <Text style={styles.genreText} numberOfLines={1}>
-                {item.genre}
-              </Text>
-              <Text style={styles.introText} numberOfLines={1}>
-                {item.shortIntro}
-              </Text>
-            </View>
-          </View>
-        </ImageBackground>
+        )}
       </TouchableOpacity>
     );
   };
 
+
   return (
     <View style={styles.container}>
+      <Modal
+        visible={selectedGame !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedGame(null)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setSelectedGame(null)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalGenre}>{selectedGame?.genre}</Text>
+            <Text style={styles.modalIntro}>{selectedGame?.shortIntro}</Text>
+            <TouchableOpacity style={styles.modalPlayButton} onPress={handlePlay} activeOpacity={0.8}>
+              <Text style={styles.modalPlayText}>{isZh ? "开始" : "Play"}</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
       <View style={styles.header}>
         <Text style={styles.appTitle}>{isZh ? "谜题" : "Puzzles"}</Text>
         <TouchableOpacity
@@ -257,6 +292,44 @@ const styles = StyleSheet.create({
   introText: {
     fontSize: typography.xs,
     color: "rgba(255,255,255,0.6)",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    width: width * 0.75,
+    gap: spacing.md,
+    alignItems: "center",
+  },
+  modalGenre: {
+    fontSize: typography.lg,
+    fontWeight: typography.bold,
+    color: colors.textPrimary,
+    textAlign: "center",
+  },
+  modalIntro: {
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  modalPlayButton: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xxl,
+    borderRadius: borderRadius.full,
+  },
+  modalPlayText: {
+    color: colors.background,
+    fontSize: typography.base,
+    fontWeight: typography.semibold,
   },
 });
 
