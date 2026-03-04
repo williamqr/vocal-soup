@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
   ImageBackground,
+  Image,
   Modal,
   Pressable,
 } from "react-native";
@@ -24,6 +25,7 @@ const CARD_HEIGHT = CARD_WIDTH * 1.4;
 
 const GAME_IMAGES: Record<string, any> = {
   g_threeBrothers_01: require("../../assets/images/Gemini_Generated_Image_pahd7qpahd7qpahd.png"),
+  celebrity_daughter_hat: require("../../assets/images/Gemini_Generated_Image_x2ju71x2ju71x2ju.png"),
 };
 
 const CARD_COLORS = [
@@ -137,11 +139,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       >
         <Pressable style={styles.modalBackdrop} onPress={() => setSelectedGame(null)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
-            <Text style={styles.modalGenre}>{selectedGame?.genre}</Text>
-            <Text style={styles.modalIntro}>{selectedGame?.shortIntro}</Text>
-            <TouchableOpacity style={styles.modalPlayButton} onPress={handlePlay} activeOpacity={0.8}>
-              <Text style={styles.modalPlayText}>{isZh ? "开始" : "Play"}</Text>
-            </TouchableOpacity>
+            {selectedGame && GAME_IMAGES[selectedGame.id] ? (
+              <Image source={GAME_IMAGES[selectedGame.id]} style={styles.modalImage} />
+            ) : (
+              <View style={styles.modalImagePlaceholder} />
+            )}
+            <View style={styles.modalContent}>
+              <Text style={styles.modalGenre}>{selectedGame?.genre}</Text>
+              <Text style={styles.modalIntro}>{selectedGame?.shortIntro}</Text>
+              <TouchableOpacity style={styles.modalPlayButton} onPress={handlePlay} activeOpacity={0.8}>
+                <Text style={styles.modalPlayText}>{isZh ? "开始" : "Play"}</Text>
+              </TouchableOpacity>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -302,10 +311,22 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.xl,
+    width: width * 0.78,
+    overflow: "hidden",
+  },
+  modalImage: {
+    width: "100%",
+    height: 180,
+  },
+  modalImagePlaceholder: {
+    width: "100%",
+    height: 180,
+    backgroundColor: colors.border,
+  },
+  modalContent: {
     padding: spacing.xl,
-    width: width * 0.75,
-    gap: spacing.md,
     alignItems: "center",
+    gap: spacing.sm,
   },
   modalGenre: {
     fontSize: typography.lg,
