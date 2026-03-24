@@ -16,7 +16,7 @@ import {
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { useAuth } from "../context/AuthContext";
-import { storyApi, type Game } from "../lib/api";
+import { storyApi, type Game, type UserProfile } from "../lib/api";
 import { colors, spacing, borderRadius, typography } from "../theme";
 
 const { width } = Dimensions.get("window");
@@ -43,17 +43,36 @@ const CARD_COLORS = [
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const { loading: authLoading, isZh } = useAuth();
+  const { user, loading: authLoading, isZh } = useAuth();
   const [games, setGames] = useState<Game[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   useEffect(() => {
+    if (authLoading || !user?.id) return;
+
     const loadGames = async () => {
       try {
         setLoading(true);
-        const data = await storyApi.getGames();
-        setGames(data);
+        const [allGames, userGames, profile] = await Promise.all([
+          storyApi.getGames(),
+          storyApi.getUserGames(user.id),
+          storyApi.getUserProfile(user.id),
+        ]);
+
+        // Merge per-user locked/completed status into game metadata
+        const merged = allGames.map((game) => {
+          const userStatus = userGames.find((s) => s.gameId === game.id);
+          return {
+            ...game,
+            status: userStatus?.locked ? "locked" as const : game.status,
+            completed: userStatus?.completed ?? false,
+          };
+        });
+
+        setGames(merged);
+        setUserProfile(profile);
       } catch (err: any) {
         console.error("Failed to load games:", err);
       } finally {
@@ -61,7 +80,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       }
     };
     loadGames();
-  }, []);
+  }, [authLoading, user?.id]);
 
   const handleCardPress = (item: Game) => {
     if (item.status !== "available" || !item.puzzleId) return;
@@ -156,6 +175,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       </Modal>
       <View style={styles.header}>
         <Text style={styles.appTitle}>{isZh ? "谜题" : "Puzzles"}</Text>
+        {userProfile && (
+          <View style={styles.userLevelBadge}>
+            <Text style={styles.userLevelText}>LV{userProfile.level}</Text>
+          </View>
+        )}
         <TouchableOpacity
           style={styles.settingsButton}
           onPress={() => navigation.navigate("Settings")}
@@ -202,6 +226,21 @@ const styles = StyleSheet.create({
     fontWeight: typography.bold,
     color: colors.textPrimary,
     letterSpacing: -0.3,
+  },
+  userLevelBadge: {
+    position: "absolute",
+    left: spacing.lg,
+    top: spacing.xxl + spacing.lg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.primary,
+  },
+  userLevelText: {
+    fontSize: typography.xs,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 0.5,
   },
   settingsButton: {
     position: "absolute",

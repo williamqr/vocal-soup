@@ -13,6 +13,18 @@ export type Game = {
   puzzleId: string;
   backgroundPicture?: string | null;
   progress?: number;
+  completed?: boolean;
+};
+
+export type UserGameStatus = {
+  gameId: string;
+  locked: boolean;
+  completed: boolean;
+};
+
+export type UserProfile = {
+  userId: string;
+  level: number;
 };
 
 // Full puzzle content (static, fetched when entering a game)
@@ -33,12 +45,16 @@ export type StartSessionResponse = {
 export type EvaluateResponse = {
   evaluation: string;
   completion: number;
+  leveledUp?: boolean;
+  newLevel?: number;
 };
 
 export type TranscribeResponse = {
   transcript: string;
   evaluation: string;
   completion: number;
+  leveledUp?: boolean;
+  newLevel?: number;
 };
 
 // API functions
@@ -50,6 +66,18 @@ export const storyApi = {
     api.get<Game[]>("/v1/games"),
 
   /**
+   * Fetch per-user locked/completed status for all games
+   */
+  getUserGames: (userId: string) =>
+    api.get<UserGameStatus[]>(`/v1/users/${userId}/games`),
+
+  /**
+   * Fetch user profile (level, etc.)
+   */
+  getUserProfile: (userId: string) =>
+    api.get<UserProfile>(`/v1/users/${userId}`),
+
+  /**
    * Fetch full puzzle content (Challenge Screen)
    */
   getPuzzle: (puzzleId: string) =>
@@ -58,7 +86,7 @@ export const storyApi = {
   /**
    * Start a new game session
    */
-  startSession: (gameId: string, userId?: string) =>
+  startSession: (gameId: string, userId: string) =>
     api.post<StartSessionResponse>("/v1/games/start", { gameId, userId }),
 
   /**

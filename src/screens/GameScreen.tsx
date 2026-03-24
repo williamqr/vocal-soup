@@ -8,6 +8,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Animated,
+  Modal,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
@@ -27,6 +28,9 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const [showHint, setShowHint] = useState(false);
   const [dynamicHint, setDynamicHint] = useState<string | null>(null);
   const [isLoadingHint, setIsLoadingHint] = useState(false);
+  const [puzzleSolved, setPuzzleSolved] = useState(false);
+  const [leveledUp, setLeveledUp] = useState(false);
+  const [newLevel, setNewLevel] = useState<number | null>(null);
   const [showSolution, setShowSolution] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -190,6 +194,13 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       const data = await storyApi.transcribeAudio(sessionId, audioUri, language);
       setEvaluationResult(data.evaluation);
       setCompletionPercent(data.completion * 100);
+      if (data.completion === 1) {
+        setPuzzleSolved(true);
+      }
+      if (data.leveledUp && data.newLevel != null) {
+        setLeveledUp(true);
+        setNewLevel(data.newLevel);
+      }
     } catch (error) {
       if (error instanceof ApiError) {
         console.error(`Transcription API Error (${error.code}):`, error.message);
@@ -447,6 +458,57 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.evaluationText}>{evalLabel(evaluationResult)}</Text>
         </View>
       )}
+
+      {/* Puzzle Solved Modal */}
+      <Modal visible={puzzleSolved} transparent animationType="fade">
+        <View style={styles.overlayBackdrop}>
+          <View style={styles.overlayCard}>
+            <Text style={styles.overlayEmoji}>🎉</Text>
+            <Text style={styles.overlayTitle}>
+              {isZh ? "谜题解开了！" : "Puzzle Solved!"}
+            </Text>
+            <Text style={styles.overlaySubtitle}>
+              {isZh ? "恭喜你完成了这个谜题" : "You figured it out!"}
+            </Text>
+            <TouchableOpacity
+              style={styles.overlayButton}
+              onPress={() => {
+                setPuzzleSolved(false);
+                navigation.navigate("Home");
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.overlayButtonText}>
+                {isZh ? "返回主页" : "Back to Home"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Level Up Modal */}
+      <Modal visible={leveledUp} transparent animationType="fade">
+        <View style={styles.overlayBackdrop}>
+          <View style={styles.overlayCard}>
+            <Text style={styles.overlayEmoji}>⬆️</Text>
+            <Text style={styles.overlayTitle}>
+              {isZh ? "升级了！" : "Level Up!"}
+            </Text>
+            <Text style={styles.overlaySubtitle}>
+              {isZh ? `你现在是等级 ${newLevel}` : `You are now Level ${newLevel}`}
+            </Text>
+            <TouchableOpacity
+              style={styles.overlayButton}
+              onPress={() => setLeveledUp(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.overlayButtonText}>
+                {isZh ? "继续" : "Continue"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Voice Control */}
       <View style={styles.voiceContainer}>
@@ -730,6 +792,48 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: typography.base,
     fontWeight: typography.semibold,
+  },
+  overlayBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  overlayCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xxl,
+    alignItems: "center",
+    gap: spacing.md,
+    width: "78%",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  overlayEmoji: {
+    fontSize: 52,
+  },
+  overlayTitle: {
+    fontSize: typography.xl,
+    fontWeight: "800",
+    color: colors.textPrimary,
+    textAlign: "center",
+  },
+  overlaySubtitle: {
+    fontSize: typography.sm,
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+  overlayButton: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xxl,
+    borderRadius: borderRadius.full,
+  },
+  overlayButtonText: {
+    color: "#fff",
+    fontSize: typography.base,
+    fontWeight: "700",
   },
 });
 
