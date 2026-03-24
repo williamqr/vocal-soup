@@ -62,6 +62,12 @@ export const storyApi = {
     api.post<StartSessionResponse>("/v1/games/start", { gameId, userId }),
 
   /**
+   * Fetch a dynamically generated hint for the current session
+   */
+  getHint: (sessionId: string) =>
+    api.post<{ hint: string }>("/v1/games/hint", { sessionId }),
+
+  /**
    * Evaluate a text answer against the session's puzzle
    */
   evaluateAnswer: (sessionId: string, userAnswer: string) =>

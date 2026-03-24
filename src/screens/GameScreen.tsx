@@ -25,6 +25,8 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const [puzzleData, setPuzzleData] = useState<PuzzleDetail | null>(null);
   const [showHint, setShowHint] = useState(false);
+  const [dynamicHint, setDynamicHint] = useState<string | null>(null);
+  const [isLoadingHint, setIsLoadingHint] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -355,7 +357,24 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.toggleSection}>
           <TouchableOpacity
             style={[styles.toggleButton, showHint && styles.toggleButtonActive]}
-            onPress={() => setShowHint((prev) => !prev)}
+            onPress={async () => {
+              if (showHint) {
+                setShowHint(false);
+                return;
+              }
+              setShowHint(true);
+              if (sessionId) {
+                setIsLoadingHint(true);
+                try {
+                  const { hint } = await storyApi.getHint(sessionId);
+                  setDynamicHint(hint);
+                } catch {
+                  setDynamicHint(null);
+                } finally {
+                  setIsLoadingHint(false);
+                }
+              }
+            }}
             activeOpacity={0.7}
           >
             <Text style={styles.toggleIcon}>{showHint ? "🙈" : "💡"}</Text>
@@ -366,18 +385,18 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
               ]}
             >
               {showHint
-                ? isZh
-                  ? "隐藏提示"
-                  : "Hide Hint"
-                : isZh
-                ? "显示提示"
-                : "Show Hint"}
+                ? isZh ? "隐藏提示" : "Hide Hint"
+                : isZh ? "显示提示" : "Show Hint"}
             </Text>
           </TouchableOpacity>
 
           {showHint && (
             <View style={styles.revealedContent}>
-              <Text style={styles.revealedText}>{localizedHint}</Text>
+              {isLoadingHint ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={styles.revealedText}>{dynamicHint ?? localizedHint}</Text>
+              )}
             </View>
           )}
         </View>
