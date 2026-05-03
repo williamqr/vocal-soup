@@ -72,6 +72,14 @@ export const storyApi = {
     api.get<UserProfile>(`/v1/users/${userId}`),
 
   /**
+   * Fetch puzzle content, translated when language is not 'en'
+   */
+  getPuzzle: (puzzleId: string, language: string = 'en') => {
+    const langParam = language !== 'en' ? `?lang=${language}` : '';
+    return api.get<PuzzleDetail>(`/v1/puzzles/${puzzleId}${langParam}`);
+  },
+
+  /**
    * Start a new game session
    */
   startSession: (gameId: string, userId: string) =>

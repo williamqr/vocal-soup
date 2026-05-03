@@ -15,7 +15,6 @@ import { RootStackParamList } from "../../App";
 import { Audio } from "expo-av";
 import { useAuth } from "../context/AuthContext";
 import { storyApi, ApiError, type PuzzleDetail } from "../lib/api";
-import { STATIC_PUZZLES } from "../lib/staticData";
 import { colors, spacing, borderRadius, typography, shadows } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Game">;
@@ -72,9 +71,20 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     (async () => {
       const { status } = await Audio.requestPermissionsAsync();
       setHasPermission(status === "granted");
-      setPuzzleData(STATIC_PUZZLES[puzzleId] ?? null);
     })();
-  }, [puzzleId]);
+  }, []);
+
+  useEffect(() => {
+    if (!puzzleId) return;
+    (async () => {
+      try {
+        const puzzle = await storyApi.getPuzzle(puzzleId, language);
+        setPuzzleData(puzzle);
+      } catch (error) {
+        console.error("Error fetching puzzle:", error);
+      }
+    })();
+  }, [puzzleId, language]);
 
   useEffect(() => {
     if (!authLoading && currentUserId && !sessionId) {
@@ -132,28 +142,6 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       setIsRecording(false);
     }
   };
-
-  const pickLocalized = useCallback(
-    (obj: any, baseKey: string) => {
-      if (!obj) return "";
-      const zhVariants = [
-        `${baseKey}_zh`,
-        `${baseKey}Zh`,
-        `${baseKey}ZH`,
-        `${baseKey}_zh_cn`,
-        `${baseKey}ZhCN`,
-        `${baseKey}_zh_hans`,
-        `${baseKey}Zh_Hans`,
-      ];
-      if (isZh) {
-        for (const k of zhVariants) {
-          if (obj[k]) return obj[k];
-        }
-      }
-      return obj[baseKey] ?? obj[`${baseKey}_en`] ?? "";
-    },
-    [isZh]
-  );
 
   const evalLabel = useCallback(
     (evalResult: string | null) => {
@@ -308,14 +296,10 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     return isZh ? "点击麦克风提问" : "Tap to ask a question";
   })();
 
-  const localizedTitle =
-    pickLocalized(puzzleData as any, "title") || puzzleData.title;
-  const localizedContent =
-    pickLocalized(puzzleData as any, "content") || puzzleData.content;
-  const localizedHint =
-    pickLocalized(puzzleData as any, "hint") || puzzleData.hint;
-  const localizedFullAnswer =
-    pickLocalized(puzzleData as any, "fullAnswer") || puzzleData.fullAnswer;
+  const localizedTitle = puzzleData.title;
+  const localizedContent = puzzleData.content;
+  const localizedHint = puzzleData.hint;
+  const localizedFullAnswer = puzzleData.fullAnswer;
 
   const getEvaluationStyle = () => {
     if (!evaluationResult) return {};
