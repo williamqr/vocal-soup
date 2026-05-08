@@ -60,12 +60,6 @@ export type TranscribeResponse = {
 // API functions
 export const storyApi = {
   /**
-   * Fetch all games for the catalog (Home Screen)
-   */
-  getGames: () =>
-    api.get<Game[]>("/v1/games"),
-
-  /**
    * Fetch per-user locked/completed status for all games
    */
   getUserGames: (userId: string) =>
@@ -78,10 +72,12 @@ export const storyApi = {
     api.get<UserProfile>(`/v1/users/${userId}`),
 
   /**
-   * Fetch full puzzle content (Challenge Screen)
+   * Fetch puzzle content, translated when language is not 'en'
    */
-  getPuzzle: (puzzleId: string) =>
-    api.get<PuzzleDetail>(`/v1/puzzles/${puzzleId}`),
+  getPuzzle: (puzzleId: string, language: string = 'en') => {
+    const langParam = language !== 'en' ? `?lang=${language}` : '';
+    return api.get<PuzzleDetail>(`/v1/puzzles/${puzzleId}${langParam}`);
+  },
 
   /**
    * Start a new game session
