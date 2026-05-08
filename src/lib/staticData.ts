@@ -5,46 +5,50 @@ import type { Game, PuzzleDetail } from "./api/storyApi";
 
 export const STATIC_GAMES: Game[] = [
   {
-    id: "g_threeBrothers_01",
-    status: "available",
-    level: 1,
+    id: "game_celebrity_hat",
+    name: "Mother's Hat",
     genre: "Horror",
     genreZh: "恐怖",
-    shortIntro: "Horror story about three brothers",
-    shortIntroZh: "三兄弟之间的恐怖故事",
-    puzzleId: "three_brother",
-  },
-  {
-    id: "g_celebrityHats_02",
-    status: "available",
     level: 1,
-    genre: "Horror",
-    genreZh: "恐怖",
+    status: "available",
     shortIntro: "A dark secret behind a mother's gift",
     shortIntroZh: "母亲的礼物背后，藏着一个黑暗的秘密",
     puzzleId: "celebrity_daughter_hat",
   },
   {
-    id: "g_blind_06",
-    status: "locked",
-    level: 6,
+    id: "game_three_brothers",
+    name: "Three Brothers",
+    genre: "Horror",
+    genreZh: "恐怖",
+    level: 1,
+    status: "available",
+    shortIntro: "Horror story about three brothers",
+    shortIntroZh: "三兄弟之间的恐怖故事",
+    puzzleId: "three_brothers",
+  },
+  {
+    id: "game_1778255135026",
+    name: "The Magician's Apprentice",
+    genre: "Tragedy",
+    genreZh: "悲剧",
+    level: 2,
+    status: "available",
+    shortIntro: "A child's attempt to impress his father leads to a gruesome reality.",
+    shortIntroZh: "孩子为了让父亲刮目相看，却铸成了一场残忍的悲剧。",
+    puzzleId: "puzzle_1778255135026",
+  },
+  {
+    id: "game_blind_man",
+    name: "The Blind Man",
     genre: "Dark Thriller",
     genreZh: "黑暗惊悚",
+    level: 6,
+    status: "locked",
     shortIntro:
       "A birthday song followed by a round of applause. To anyone else, it's a celebration. To him, it's the sound of a deadly betrayal.",
     shortIntroZh:
       "生日歌响起，掌声随之而来。对旁人而言，这是欢庆；对他而言，这是背叛的回声。",
     puzzleId: "blind_man",
-  },
-  {
-    id: "game_1777786702699",
-    genre: "Suspense",
-    genreZh: "悬疑",
-    level: 2,
-    status: "available",
-    shortIntro: "A simple choice of clothing leads to a bloody crime scene.",
-    shortIntroZh: "一件随手挑选的裙子，却引发了一场血案。",
-    puzzleId: "puzzle_1777786702699",
   },
 ];
 
@@ -52,8 +56,8 @@ export const STATIC_GAMES: Game[] = [
 // At runtime, puzzle content (including translations) is always fetched from
 // the backend via storyApi.getPuzzle(puzzleId, language).
 export const STATIC_PUZZLES: Record<string, PuzzleDetail> = {
-  three_brother: {
-    id: "three_brother",
+  three_brothers: {
+    id: "three_brothers",
     title: "Three Brothers",
     content:
       "There were three brothers, the eldest and the second were twins. The three brothers had a very good relationship and often slept together. After the eldest brother died of illness, the youngest brother killed the second brother. Why.",
@@ -83,6 +87,14 @@ export const STATIC_PUZZLES: Record<string, PuzzleDetail> = {
       "raised as a spare part",
     ],
   },
+  puzzle_1778255135026: {
+    id: "puzzle_1778255135026",
+    title: "The Magician's Apprentice",
+    content: "",
+    fullAnswer: "",
+    parts: [],
+    hint: "",
+  },
   blind_man: {
     id: "blind_man",
     title: "The Blind Man",
@@ -98,21 +110,5 @@ export const STATIC_PUZZLES: Record<string, PuzzleDetail> = {
       "betrayal discovery",
     ],
     hint: "",
-  },
-  The_Red_Dress: {
-    id: "puzzle_1777786702699",
-    title: "The Red Dress",
-    content:
-      "My older sister picked out a little red dress for me to wear to school. I thought I looked pretty, but by the time I got home, someone was dead.",
-    fullAnswer:
-      "The protagonist's mother was having an affair with the school teacher. They used the girl's clothing as a secret signal: whenever she wore the red dress to school, it meant the father was away and it was safe for the teacher to visit. Usually, the mother chose the outfits. On this day, the mother was busy, so the sister unknowingly picked the red dress. The teacher saw the girl at school, assumed the father was gone, and went to the house. However, the father was actually home, caught them together, and killed the teacher in a rage.",
-    parts: [
-      "The red dress was a secret signal for an affair.",
-      "The signal meant the father was not at home.",
-      "The sister picked the dress without knowing its meaning.",
-      "The teacher saw the dress and went to the house.",
-      "The father was home and killed the teacher.",
-    ],
-    hint: "The dress wasn't just a piece of clothing; it was a message intended for someone at school.",
   },
 };

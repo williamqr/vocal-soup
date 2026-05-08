@@ -6,6 +6,7 @@ import { api } from "./client";
 // Game catalog item (metadata only, no puzzle content)
 export type Game = {
   id: string;
+  name?: string;
   status: "available" | "locked" | "premium";
   level: number;
   genre: string;
