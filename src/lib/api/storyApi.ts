@@ -9,7 +9,9 @@ export type Game = {
   status: "available" | "locked" | "premium";
   level: number;
   genre: string;
+  genreZh?: string;
   shortIntro: string;
+  shortIntroZh?: string;
   puzzleId: string;
   backgroundPicture?: string | null;
   progress?: number;
@@ -82,8 +84,8 @@ export const storyApi = {
   /**
    * Start a new game session
    */
-  startSession: (gameId: string, userId: string) =>
-    api.post<StartSessionResponse>("/v1/games/start", { gameId, userId }),
+  startSession: (gameId: string, userId: string, language: string = "en") =>
+    api.post<StartSessionResponse>("/v1/games/start", { gameId, userId, language }),
 
   /**
    * Fetch a dynamically generated hint for the current session

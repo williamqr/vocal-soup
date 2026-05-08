@@ -9,7 +9,9 @@ export const STATIC_GAMES: Game[] = [
     status: "available",
     level: 1,
     genre: "Horror",
+    genreZh: "恐怖",
     shortIntro: "Horror story about three brothers",
+    shortIntroZh: "三兄弟之间的恐怖故事",
     puzzleId: "three_brother",
   },
   {
@@ -17,7 +19,9 @@ export const STATIC_GAMES: Game[] = [
     status: "available",
     level: 1,
     genre: "Horror",
+    genreZh: "恐怖",
     shortIntro: "A dark secret behind a mother's gift",
+    shortIntroZh: "母亲的礼物背后，藏着一个黑暗的秘密",
     puzzleId: "celebrity_daughter_hat",
   },
   {
@@ -25,20 +29,28 @@ export const STATIC_GAMES: Game[] = [
     status: "locked",
     level: 6,
     genre: "Dark Thriller",
+    genreZh: "黑暗惊悚",
     shortIntro:
       "A birthday song followed by a round of applause. To anyone else, it's a celebration. To him, it's the sound of a deadly betrayal.",
+    shortIntroZh:
+      "生日歌响起，掌声随之而来。对旁人而言，这是欢庆；对他而言，这是背叛的回声。",
     puzzleId: "blind_man",
   },
-    {
-    id: 'game_1777786702699',
-    genre: 'Suspense',
+  {
+    id: "game_1777786702699",
+    genre: "Suspense",
+    genreZh: "悬疑",
     level: 2,
-    status: 'available',
-    shortIntro: 'A simple choice of clothing leads to a bloody crime scene.',
-    puzzleId: 'puzzle_1777786702699',
+    status: "available",
+    shortIntro: "A simple choice of clothing leads to a bloody crime scene.",
+    shortIntroZh: "一件随手挑选的裙子，却引发了一场血案。",
+    puzzleId: "puzzle_1777786702699",
   },
 ];
 
+// STATIC_PUZZLES is kept as an offline reference only.
+// At runtime, puzzle content (including translations) is always fetched from
+// the backend via storyApi.getPuzzle(puzzleId, language).
 export const STATIC_PUZZLES: Record<string, PuzzleDetail> = {
   three_brother: {
     id: "three_brother",
@@ -61,8 +73,8 @@ export const STATIC_PUZZLES: Record<string, PuzzleDetail> = {
     title: "The Celebrity's Daughter",
     content:
       "A female celebrity has a daughter. Since childhood, she would often put a hat on her daughter. One day, she took her daughter to the hospital. After learning the truth in the hospital, her daughter committed suicide.",
-    fullAnswer:
-      "The female celebrity had her face disfigured and raised her daughter as a biological donor for a face transplant. The hat belonged to the celebrity; she used it to measure her daughter's head growth. Once the hat fit perfectly, it signaled that the daughter's facial structure matched her own, making the transplant viable. Upon realizing she was merely a \"spare part,\" the daughter took her own life.",
+    hint: "Why would a mother need a hat to fit a child perfectly before going to a hospital?",
+    fullAnswer: "",
     parts: [
       "facial disfigurement",
       "measuring head growth",
@@ -70,7 +82,6 @@ export const STATIC_PUZZLES: Record<string, PuzzleDetail> = {
       "biological donor",
       "raised as a spare part",
     ],
-    hint: "Why would a mother need a hat to fit a child perfectly before going to a hospital?",
   },
   blind_man: {
     id: "blind_man",
@@ -88,18 +99,20 @@ export const STATIC_PUZZLES: Record<string, PuzzleDetail> = {
     ],
     hint: "",
   },
-    The_Red_Dress: {
-    id: 'puzzle_1777786702699',
-    title: 'The Red Dress',
-    content: 'My older sister picked out a little red dress for me to wear to school. I thought I looked pretty, but by the time I got home, someone was dead.',
-    fullAnswer: 'The protagonist\'s mother was having an affair with the school teacher. They used the girl\'s clothing as a secret signal: whenever she wore the red dress to school, it meant the father was away and it was safe for the teacher to visit. Usually, the mother chose the outfits. On this day, the mother was busy, so the sister unknowingly picked the red dress. The teacher saw the girl at school, assumed the father was gone, and went to the house. However, the father was actually home, caught them together, and killed the teacher in a rage.',
+  The_Red_Dress: {
+    id: "puzzle_1777786702699",
+    title: "The Red Dress",
+    content:
+      "My older sister picked out a little red dress for me to wear to school. I thought I looked pretty, but by the time I got home, someone was dead.",
+    fullAnswer:
+      "The protagonist's mother was having an affair with the school teacher. They used the girl's clothing as a secret signal: whenever she wore the red dress to school, it meant the father was away and it was safe for the teacher to visit. Usually, the mother chose the outfits. On this day, the mother was busy, so the sister unknowingly picked the red dress. The teacher saw the girl at school, assumed the father was gone, and went to the house. However, the father was actually home, caught them together, and killed the teacher in a rage.",
     parts: [
-    'The red dress was a secret signal for an affair.',
-    'The signal meant the father was not at home.',
-    'The sister picked the dress without knowing its meaning.',
-    'The teacher saw the dress and went to the house.',
-    'The father was home and killed the teacher.'
+      "The red dress was a secret signal for an affair.",
+      "The signal meant the father was not at home.",
+      "The sister picked the dress without knowing its meaning.",
+      "The teacher saw the dress and went to the house.",
+      "The father was home and killed the teacher.",
     ],
-    hint: 'The dress wasn\'t just a piece of clothing; it was a message intended for someone at school.',
+    hint: "The dress wasn't just a piece of clothing; it was a message intended for someone at school.",
   },
 };

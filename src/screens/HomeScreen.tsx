@@ -168,10 +168,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
         <View style={styles.cardMeta}>
           <Text style={styles.genreText} numberOfLines={1}>
-            {item.genre}
+            {isZh && item.genreZh ? item.genreZh : item.genre}
           </Text>
           <Text style={styles.introText} numberOfLines={1}>
-            {item.shortIntro}
+            {isZh && item.shortIntroZh ? item.shortIntroZh : item.shortIntro}
           </Text>
         </View>
       </View>
@@ -226,8 +226,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.modalImagePlaceholder} />
             )}
             <View style={styles.modalContent}>
-              <Text style={styles.modalGenre}>{selectedGame?.genre}</Text>
-              <Text style={styles.modalIntro}>{selectedGame?.shortIntro}</Text>
+              <Text style={styles.modalGenre}>
+                {isZh && selectedGame?.genreZh ? selectedGame.genreZh : selectedGame?.genre}
+              </Text>
+              <Text style={styles.modalIntro}>
+                {isZh && selectedGame?.shortIntroZh ? selectedGame.shortIntroZh : selectedGame?.shortIntro}
+              </Text>
               <TouchableOpacity
                 style={styles.modalPlayButton}
                 onPress={handlePlay}
