@@ -14,7 +14,7 @@ import {
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { signInWithEmail, signInWithGoogle } from "../services/auth";
-import { colors, spacing, borderRadius, typography, shadows } from "../theme";
+import { colors, spacing, borderRadius, typography, fonts, shadows } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
@@ -81,7 +81,6 @@ export function LoginScreen({ navigation, route }: Props) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Back button */}
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -90,13 +89,10 @@ export function LoginScreen({ navigation, route }: Props) {
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
 
-        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>
-            {gameId
-              ? "Sign in to start playing"
-              : "Sign in to continue your puzzle adventure"}
+          <Text style={styles.eyebrow}>RETURN</Text>
+          <Text style={styles.title}>
+            {gameId ? "Sign in to start playing." : "Pick up where you left off."}
           </Text>
         </View>
 
@@ -105,7 +101,7 @@ export function LoginScreen({ navigation, route }: Props) {
           style={[styles.googleButton, googleLoading && styles.buttonDisabled]}
           onPress={handleGoogleLogin}
           disabled={googleLoading || loading}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
           {googleLoading ? (
             <ActivityIndicator color={colors.textSecondary} size="small" />
@@ -117,22 +113,17 @@ export function LoginScreen({ navigation, route }: Props) {
           )}
         </TouchableOpacity>
 
-        {/* Divider */}
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>or</Text>
           <View style={styles.dividerLine} />
         </View>
 
-        {/* Form */}
         <View style={styles.form}>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={[
-                styles.input,
-                focusedField === "email" && styles.inputFocused,
-              ]}
+              style={[styles.input, focusedField === "email" && styles.inputFocused]}
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
@@ -148,13 +139,10 @@ export function LoginScreen({ navigation, route }: Props) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
             <TextInput
-              style={[
-                styles.input,
-                focusedField === "password" && styles.inputFocused,
-              ]}
+              style={[styles.input, focusedField === "password" && styles.inputFocused]}
               secureTextEntry
               autoComplete="password"
-              placeholder="Enter your password"
+              placeholder="••••••••"
               placeholderTextColor={colors.textDim}
               value={password}
               onChangeText={setPassword}
@@ -163,36 +151,30 @@ export function LoginScreen({ navigation, route }: Props) {
             />
           </View>
 
-          {/* Error Message */}
           {errorMsg && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>{errorMsg}</Text>
             </View>
           )}
 
-          {/* Login Button */}
           <TouchableOpacity
             style={[styles.primaryButton, loading && styles.buttonDisabled]}
             onPress={handleLogin}
             disabled={loading || googleLoading}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color={colors.textPrimary} size="small" />
+              <ActivityIndicator color={colors.textInverse} size="small" />
             ) : (
-              <Text style={styles.primaryButtonText}>Log In</Text>
+              <Text style={styles.primaryButtonText}>Enter</Text>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account?</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Signup")}
-            style={styles.linkButton}
-          >
-            <Text style={styles.linkText}>Sign Up</Text>
+          <Text style={styles.footerText}>New here?</Text>
+          <TouchableOpacity onPress={() => navigation.navigate("Signup")} style={styles.linkButton}>
+            <Text style={styles.linkText}>Open a case</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -201,10 +183,7 @@ export function LoginScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: spacing.xl,
@@ -219,29 +198,30 @@ const styles = StyleSheet.create({
   backText: {
     color: colors.textMuted,
     fontSize: typography.base,
+    fontFamily: fonts.sans,
   },
-  header: {
-    marginBottom: spacing.xxl,
+  header: { marginBottom: spacing.xxl },
+  eyebrow: {
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
+    color: colors.primary,
+    letterSpacing: 2.5,
+    marginBottom: spacing.md,
   },
   title: {
     fontSize: typography.xxxl,
-    fontWeight: typography.bold,
+    fontFamily: fonts.serif,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    fontSize: typography.md,
-    color: colors.textMuted,
-    lineHeight: 22,
+    lineHeight: 38,
   },
   googleButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
-    backgroundColor: colors.background,
-    borderWidth: 1.5,
-    borderColor: colors.borderDark,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     paddingVertical: spacing.lg,
     borderRadius: borderRadius.full,
     marginBottom: spacing.lg,
@@ -249,13 +229,13 @@ const styles = StyleSheet.create({
   },
   googleIcon: {
     fontSize: typography.lg,
-    fontWeight: typography.bold,
+    fontFamily: fonts.sansBold,
     color: "#4285F4",
   },
   googleButtonText: {
     color: colors.textSecondary,
     fontSize: typography.md,
-    fontWeight: typography.medium,
+    fontFamily: fonts.sansMedium,
   },
   divider: {
     flexDirection: "row",
@@ -263,31 +243,24 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginBottom: spacing.lg,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
   dividerText: {
     color: colors.textDim,
     fontSize: typography.sm,
+    fontFamily: fonts.mono,
   },
-  form: {
-    gap: spacing.lg,
-  },
-  inputGroup: {
-    gap: spacing.sm,
-  },
+  form: { gap: spacing.lg },
+  inputGroup: { gap: spacing.sm },
   label: {
     color: colors.textMuted,
-    fontSize: typography.sm,
-    fontWeight: typography.medium,
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
     marginLeft: spacing.xs,
   },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceLight,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -295,22 +268,17 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md + 2,
     color: colors.textPrimary,
     fontSize: typography.md,
+    fontFamily: fonts.sans,
   },
-  inputFocused: {
-    borderColor: colors.primary,
-    ...shadows.sm,
-  },
+  inputFocused: { borderColor: colors.primary, ...shadows.sm },
   errorContainer: {
-    backgroundColor: "rgba(248, 113, 113, 0.1)",
+    backgroundColor: colors.errorTint,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     borderLeftWidth: 3,
     borderLeftColor: colors.error,
   },
-  errorText: {
-    color: colors.error,
-    fontSize: typography.base,
-  },
+  errorText: { color: colors.error, fontSize: typography.base, fontFamily: fonts.sans },
   primaryButton: {
     backgroundColor: colors.primary,
     paddingVertical: spacing.lg,
@@ -320,13 +288,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     ...shadows.md,
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
+  buttonDisabled: { opacity: 0.7 },
   primaryButtonText: {
-    color: colors.textPrimary,
+    color: colors.textInverse,
     fontSize: typography.md,
-    fontWeight: typography.semibold,
+    fontFamily: fonts.sansSemibold,
+    letterSpacing: 2,
   },
   footer: {
     flexDirection: "row",
@@ -336,16 +303,11 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xxl,
     gap: spacing.sm,
   },
-  footerText: {
-    color: colors.textMuted,
-    fontSize: typography.base,
-  },
-  linkButton: {
-    paddingVertical: spacing.xs,
-  },
+  footerText: { color: colors.textMuted, fontSize: typography.base, fontFamily: fonts.sans },
+  linkButton: { paddingVertical: spacing.xs },
   linkText: {
     color: colors.primary,
     fontSize: typography.base,
-    fontWeight: typography.semibold,
+    fontFamily: fonts.sansSemibold,
   },
 });

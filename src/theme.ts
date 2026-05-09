@@ -1,39 +1,45 @@
-// src/theme.ts - Design tokens and theme constants
+// src/theme.ts — CIPHER design tokens
+// Dark, watchful, ominous. One orange. Three voices.
 
 export const colors = {
-  // Primary
-  primary: "#F97316",
-  primaryDark: "#EA580C",
-  primaryLight: "#FB923C",
+  // Brand
+  primary: "#FF6A1A",       // CIPHER orange — the one warning
+  primaryDark: "#E55A0F",
+  primaryLight: "#FF8A4D",
 
-  // Background
-  background: "#FFFFFF",
-  surface: "#F9FAFB",
-  surfaceLight: "#F3F4F6",
+  // Surfaces (dark)
+  background: "#0A0A0F",    // near-black canvas
+  surface: "#111118",       // raised surface (matches app icon)
+  surfaceLight: "#1A1A22",  // slightly lighter (inputs, badges)
+  surfaceElevated: "#222230",
 
-  // Text
-  textPrimary: "#111827",
-  textSecondary: "#1F2937",
-  textTertiary: "#374151",
-  textMuted: "#6B7280",
-  textDim: "#9CA3AF",
+  // Text (inverted ladder)
+  textPrimary: "#F5F5F0",   // near-white, warm
+  textSecondary: "#D4D4D0",
+  textTertiary: "#A8A8A4",
+  textMuted: "#6B6B6B",
+  textDim: "#3F3F46",
+  textInverse: "#0A0A0F",   // dark text on light fills (e.g. on primary button)
 
   // Borders
-  border: "#E5E7EB",
-  borderLight: "#F3F4F6",
-  borderDark: "#D1D5DB",
+  border: "#1F1F2A",
+  borderLight: "#2A2A36",
+  borderDark: "#0F0F18",
+  borderAccent: "#FF6A1A",
 
   // Status
-  success: "#10B981",
-  successLight: "#34D399",
+  success: "#34D399",
+  successDark: "#10B981",
   error: "#F87171",
   errorDark: "#DC2626",
   warning: "#FBBF24",
-  info: "#3B82F6",
+  info: "#60A5FA",
 
-  // Accents
-  accent: "#8B5CF6",
-  accentBlue: "#2563EB",
+  // Tints (alpha overlays for banners)
+  primaryTint: "rgba(255, 106, 26, 0.10)",
+  successTint: "rgba(52, 211, 153, 0.12)",
+  errorTint:   "rgba(248, 113, 113, 0.12)",
+  scrim:       "rgba(0, 0, 0, 0.65)",
 };
 
 export const spacing = {
@@ -54,6 +60,25 @@ export const borderRadius = {
   full: 999,
 };
 
+// ---- Type system ----
+// Three voices:
+//   serif  — what the GAME says (taglines, prompts, verdicts)
+//   sans   — what the APP says (buttons, fields, plain UI)
+//   mono   — what the SYSTEM says (labels, codes, metadata)
+//   sansSC — Chinese shadow of `sans`
+export const fonts = {
+  serif: "InstrumentSerif_400Regular_Italic",
+  serifRoman: "InstrumentSerif_400Regular",
+  sans: "Inter_400Regular",
+  sansMedium: "Inter_500Medium",
+  sansSemibold: "Inter_600SemiBold",
+  sansBold: "Inter_700Bold",
+  mono: "JetBrainsMono_400Regular",
+  monoMedium: "JetBrainsMono_500Medium",
+  sansSC: "NotoSansSC_400Regular",
+  sansSCBold: "NotoSansSC_700Bold",
+};
+
 export const typography = {
   // Sizes
   xs: 11,
@@ -64,9 +89,9 @@ export const typography = {
   xl: 20,
   xxl: 24,
   xxxl: 32,
-  display: 36,
+  display: 40,
 
-  // Weights (as string literals for React Native)
+  // Weights (string literals for RN)
   light: "300" as const,
   normal: "400" as const,
   medium: "500" as const,
@@ -74,38 +99,39 @@ export const typography = {
   bold: "700" as const,
 };
 
+// Heavier shadows on near-black; glow reserved for live/listening surfaces.
 export const shadows = {
   sm: {
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowOpacity: 0.4,
+    shadowRadius: 3,
     elevation: 2,
   },
   md: {
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 5,
   },
   lg: {
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 10,
   },
   glow: {
-    shadowColor: "#F97316",
+    shadowColor: "#FF6A1A",
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0.55,
+    shadowRadius: 18,
+    elevation: 10,
   },
 };
 
-// Common component styles
+// ---- Common composed styles ----
 export const commonStyles = {
   container: {
     flex: 1,
@@ -119,14 +145,15 @@ export const commonStyles = {
     borderColor: colors.border,
   },
   input: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
+    backgroundColor: colors.surfaceLight,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.md + 2,
     color: colors.textPrimary,
     fontSize: typography.md,
+    fontFamily: fonts.sans,
   },
   inputFocused: {
     borderColor: colors.primary,
@@ -134,10 +161,10 @@ export const commonStyles = {
   label: {
     color: colors.textMuted,
     fontSize: typography.sm,
-    fontWeight: typography.medium,
+    fontFamily: fonts.mono,
     marginBottom: spacing.sm,
     textTransform: "uppercase" as const,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   primaryButton: {
     backgroundColor: colors.primary,
@@ -148,14 +175,15 @@ export const commonStyles = {
     justifyContent: "center" as const,
   },
   primaryButtonText: {
-    color: colors.textPrimary,
+    color: colors.textInverse,
     fontSize: typography.md,
-    fontWeight: typography.semibold,
+    fontFamily: fonts.sansSemibold,
+    letterSpacing: 0.3,
   },
   secondaryButton: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: colors.borderDark,
+    borderColor: colors.borderLight,
     paddingVertical: spacing.md + 2,
     paddingHorizontal: spacing.xl,
     borderRadius: borderRadius.full,
@@ -163,9 +191,9 @@ export const commonStyles = {
     justifyContent: "center" as const,
   },
   secondaryButtonText: {
-    color: colors.textTertiary,
+    color: colors.textSecondary,
     fontSize: typography.md,
-    fontWeight: typography.medium,
+    fontFamily: fonts.sansMedium,
   },
   textButton: {
     paddingVertical: spacing.sm,
@@ -174,6 +202,7 @@ export const commonStyles = {
   textButtonText: {
     color: colors.textMuted,
     fontSize: typography.base,
+    fontFamily: fonts.sans,
     textDecorationLine: "underline" as const,
   },
 };
@@ -182,6 +211,7 @@ export default {
   colors,
   spacing,
   borderRadius,
+  fonts,
   typography,
   shadows,
   commonStyles,

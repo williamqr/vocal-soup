@@ -9,8 +9,8 @@ import {
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
+import { colors, spacing, borderRadius, typography, fonts, shadows } from "../theme";
 import { useAuth } from "../context/AuthContext";
-import { colors, spacing, borderRadius, typography, shadows } from "../theme";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Story">;
 
@@ -18,74 +18,56 @@ export const StoryScreen: React.FC<Props> = ({ route, navigation }) => {
   const { finalStory, openingText, storyChunks } = route.params;
   const { isZh } = useAuth();
 
+  const chunks =
+    storyChunks && storyChunks.length > 0
+      ? storyChunks
+      : finalStory.split(/\n\s*\n/).filter(Boolean);
+
   return (
     <View style={styles.container}>
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.successIcon}>🎉</Text>
-          <Text style={styles.title}>
-            {isZh ? "你的冒险故事" : "Your Adventure"}
-          </Text>
-          <Text style={styles.subtitle}>
-            {isZh
-              ? "恭喜你完成了这个谜题！"
-              : "Congratulations on completing this puzzle!"}
-          </Text>
-        </View>
+        <Text style={styles.eyebrow}>{isZh ? "完整故事" : "THE FULL STORY"}</Text>
+        <Text style={styles.title}>
+          {isZh ? "真相大白。" : "The truth, in full."}
+        </Text>
+        <View style={styles.divider} />
 
-        {/* Story Content */}
-        <View style={styles.storyCard}>
-          {openingText && (
-            <View style={styles.storySection}>
-              <Text style={styles.sectionLabel}>
-                {isZh ? "开篇" : "Opening"}
-              </Text>
-              <Text style={styles.storyText}>{openingText}</Text>
-            </View>
-          )}
-
-          {storyChunks && storyChunks.length > 0 && (
-            <View style={styles.storySection}>
-              <Text style={styles.sectionLabel}>
-                {isZh ? "你的问题之旅" : "Your Journey"}
-              </Text>
-              {storyChunks.map((chunk, idx) => (
-                <View key={idx} style={styles.chunkContainer}>
-                  <View style={styles.chunkNumber}>
-                    <Text style={styles.chunkNumberText}>{idx + 1}</Text>
-                  </View>
-                  <Text style={styles.chunkText}>{chunk}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          <View style={styles.storySection}>
-            <Text style={styles.sectionLabel}>
-              {isZh ? "完整故事" : "The Full Story"}
+        {openingText ? (
+          <View style={styles.openingCard}>
+            <Text style={styles.openingLabel}>
+              {isZh ? "开篇" : "Opening"}
             </Text>
-            <View style={styles.finalStoryContainer}>
-              <Text style={styles.finalStoryText}>{finalStory}</Text>
-            </View>
+            <Text style={styles.openingText}>{openingText}</Text>
           </View>
+        ) : null}
+
+        {chunks.map((chunk, idx) => (
+          <View key={idx} style={styles.chunkRow}>
+            <Text style={styles.chunkNumber}>
+              {String(idx + 1).padStart(2, "0")}
+            </Text>
+            <Text style={styles.chunkText}>{chunk}</Text>
+          </View>
+        ))}
+
+        <View style={styles.endMark}>
+          <View style={styles.endRule} />
+          <Text style={styles.endText}>{isZh ? "完" : "END"}</Text>
+          <View style={styles.endRule} />
         </View>
       </ScrollView>
 
-      {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.primaryButton}
+          activeOpacity={0.85}
           onPress={() => navigation.navigate("Home")}
-          activeOpacity={0.8}
         >
-          <Text style={styles.buttonIcon}>🏠</Text>
           <Text style={styles.primaryButtonText}>
-            {isZh ? "返回谜题列表" : "Back to Puzzles"}
+            {isZh ? "返回档案" : "Back to cases"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -94,98 +76,89 @@ export const StoryScreen: React.FC<Props> = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  contentContainer: {
+  container: { flex: 1, backgroundColor: colors.background },
+  scrollContent: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xl,
+    paddingTop: spacing.xxl + spacing.lg,
+    paddingBottom: spacing.xxl,
   },
-  header: {
-    alignItems: "center",
-    marginBottom: spacing.xl,
-  },
-  successIcon: {
-    fontSize: 56,
-    marginBottom: spacing.md,
+  eyebrow: {
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
+    color: colors.primary,
+    letterSpacing: 2.5,
+    marginBottom: spacing.sm,
   },
   title: {
     fontSize: typography.xxl,
-    fontWeight: typography.bold,
+    fontFamily: fonts.serif,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
-    textAlign: "center",
+    marginBottom: spacing.lg,
   },
-  subtitle: {
-    fontSize: typography.base,
-    color: colors.textMuted,
-    textAlign: "center",
-  },
-  storyCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  storySection: {
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
     marginBottom: spacing.xl,
   },
-  sectionLabel: {
-    fontSize: typography.sm,
-    color: colors.primary,
+  openingCard: {
+    backgroundColor: colors.surface,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  openingLabel: {
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
+    color: colors.textMuted,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-    fontWeight: typography.semibold,
-    marginBottom: spacing.md,
+    letterSpacing: 1.5,
+    marginBottom: spacing.sm,
   },
-  storyText: {
-    fontSize: typography.base,
-    color: colors.textTertiary,
-    lineHeight: 24,
+  openingText: {
+    fontSize: typography.md,
+    fontFamily: fonts.serif,
+    color: colors.textSecondary,
+    lineHeight: 26,
   },
-  chunkContainer: {
+  chunkRow: {
     flexDirection: "row",
-    marginBottom: spacing.md,
     gap: spacing.md,
+    marginBottom: spacing.xl,
   },
   chunkNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.surfaceLight,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  chunkNumberText: {
     fontSize: typography.sm,
-    fontWeight: typography.bold,
-    color: colors.textMuted,
+    fontFamily: fonts.mono,
+    color: colors.primary,
+    paddingTop: 4,
+    minWidth: 28,
   },
   chunkText: {
     flex: 1,
-    fontSize: typography.base,
-    color: colors.textTertiary,
-    lineHeight: 22,
-  },
-  finalStoryContainer: {
-    backgroundColor: colors.surfaceLight,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
-  },
-  finalStoryText: {
     fontSize: typography.md,
+    fontFamily: fonts.serif,
     color: colors.textSecondary,
     lineHeight: 26,
+  },
+  endMark: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.md,
+    marginTop: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  endRule: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.borderLight,
+  },
+  endText: {
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
+    color: colors.textMuted,
+    letterSpacing: 3,
   },
   footer: {
     paddingHorizontal: spacing.lg,
@@ -195,22 +168,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   primaryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
     backgroundColor: colors.primary,
+    paddingVertical: spacing.lg,
     borderRadius: borderRadius.full,
-    paddingVertical: spacing.md + 2,
+    alignItems: "center",
     ...shadows.md,
   },
-  buttonIcon: {
-    fontSize: 18,
-  },
   primaryButtonText: {
-    color: colors.textPrimary,
-    fontWeight: typography.semibold,
+    color: colors.textInverse,
     fontSize: typography.md,
+    fontFamily: fonts.sansSemibold,
+    letterSpacing: 2,
   },
 });
 

@@ -15,7 +15,17 @@ import { RootStackParamList } from "../../App";
 import { Audio } from "expo-av";
 import { useAuth } from "../context/AuthContext";
 import { storyApi, ApiError, type PuzzleDetail } from "../lib/api";
-import { colors, spacing, borderRadius, typography, shadows } from "../theme";
+import { colors, spacing, borderRadius, typography, fonts, shadows } from "../theme";
+import {
+  MicIcon,
+  StopIcon,
+  LockIcon,
+  HintIcon,
+  HintHideIcon,
+  SolutionIcon,
+  TruthRevealedIcon,
+  AscendIcon,
+} from "../icons";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Game">;
 
@@ -45,21 +55,12 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const recordingRef = useRef<Audio.Recording | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Pulse animation for recording state
   useEffect(() => {
     if (isRecording) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseAnim, { toValue: 1.1, duration: 500, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
         ])
       ).start();
     } else {
@@ -131,9 +132,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       setRecordingDuration(null);
 
       const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       await recording.startAsync();
 
       recordingRef.current = recording;
@@ -150,22 +149,22 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
       const normalized = evalResult.trim().toLowerCase();
 
       if (normalized === "evaluating..." || normalized === "evaluating") {
-        return isZh ? "正在分析你的问题..." : "Analyzing your question...";
+        return isZh ? "正在分析..." : "Listening...";
       }
 
       if (normalized === "yes" || normalized === "correct" || normalized === "true") {
-        return isZh ? "是的！" : "YES!";
+        return isZh ? "是。" : "Yes.";
       }
 
       if (normalized === "no" || normalized === "incorrect" || normalized === "false") {
-        return isZh ? "不是" : "NO";
+        return isZh ? "不是。" : "No.";
       }
 
       if (normalized.includes("error")) {
-        return isZh ? "评估错误" : "Error evaluating";
+        return isZh ? "评估错误" : "The line went quiet.";
       }
 
-      return isZh ? `${evalResult}` : `${evalResult.toUpperCase()}`;
+      return evalResult;
     },
     [isZh]
   );
@@ -194,16 +193,12 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         console.error(`Transcription API Error (${error.code}):`, error.message);
         setEvaluationResult(
           error.code === "NETWORK"
-            ? isZh
-              ? "网络错误，请重试"
-              : "Network error, please retry"
-            : isZh
-            ? "转录失败"
-            : "Transcription failed"
+            ? isZh ? "网络错误，请重试" : "Network error. Try again."
+            : isZh ? "转录失败" : "We couldn't hear you."
         );
       } else {
         console.error("Error during transcription:", error);
-        setEvaluationResult(isZh ? "转录出错" : "Error during transcription");
+        setEvaluationResult(isZh ? "转录出错" : "Something went wrong.");
       }
     }
   };
@@ -240,15 +235,10 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  // Loading state
   if (authLoading || isLoadingSession || !puzzleData) {
     const loadingMessage = authLoading
-      ? isZh
-        ? "正在验证用户身份..."
-        : "Authenticating..."
-      : isZh
-      ? "正在加载谜题..."
-      : "Loading puzzle...";
+      ? isZh ? "正在验证身份..." : "Authenticating..."
+      : isZh ? "正在加载..." : "Opening the case...";
 
     return (
       <View style={styles.loadingContainer}>
@@ -260,26 +250,21 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
-  // Not logged in
   if (!currentUserId) {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.errorCard}>
-          <Text style={styles.errorIcon}>🔒</Text>
-          <Text style={styles.errorTitle}>
-            {isZh ? "需要登录" : "Login Required"}
-          </Text>
+          <LockIcon size={36} color={colors.primary} />
+          <Text style={styles.errorTitle}>{isZh ? "需要登录" : "Locked."}</Text>
           <Text style={styles.errorMessage}>
-            {isZh ? "请登录以继续游戏" : "Please log in to continue playing"}
+            {isZh ? "请登录以继续游戏" : "Sign in to continue."}
           </Text>
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => navigation.navigate("Login")}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
-            <Text style={styles.primaryButtonText}>
-              {isZh ? "前往登录" : "Go to Login"}
-            </Text>
+            <Text style={styles.primaryButtonText}>{isZh ? "前往登录" : "Enter"}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -287,13 +272,10 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   const micStatusText = (() => {
-    if (isLoadingSession)
-      return isZh ? "正在初始化..." : "Initializing...";
-    if (hasPermission === false)
-      return isZh ? "麦克风权限被拒绝" : "Microphone permission denied";
-    if (isRecording)
-      return isZh ? "正在录音... 点击停止" : "Recording... tap to stop";
-    return isZh ? "点击麦克风提问" : "Tap to ask a question";
+    if (isLoadingSession) return isZh ? "正在初始化..." : "Initializing...";
+    if (hasPermission === false) return isZh ? "麦克风权限被拒绝" : "Microphone permission denied";
+    if (isRecording) return isZh ? "正在聆听... 点击停止" : "Listening... tap to stop";
+    return isZh ? "点击麦克风提问" : "Tap to ask";
   })();
 
   const localizedTitle = puzzleData.title;
@@ -305,28 +287,24 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!evaluationResult) return {};
     const normalized = evaluationResult.toLowerCase();
     if (normalized === "yes" || normalized === "correct" || normalized === "true") {
-      return { backgroundColor: "rgba(16, 185, 129, 0.15)", borderColor: colors.success };
+      return { backgroundColor: colors.successTint, borderColor: colors.success };
     }
     if (normalized === "no" || normalized === "incorrect" || normalized === "false") {
-      return { backgroundColor: "rgba(248, 113, 113, 0.15)", borderColor: colors.error };
+      return { backgroundColor: colors.errorTint, borderColor: colors.error };
     }
     return {};
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Title */}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.eyebrow}>CASE FILE</Text>
         <Text style={styles.title}>{localizedTitle}</Text>
 
-        {/* Progress Section */}
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
             <Text style={styles.progressLabel}>
-              {isZh ? "进度" : "Progress"}
+              {isZh ? "接近真相" : "Toward the truth"}
             </Text>
             <Text style={styles.progressPercent}>
               {Math.round(completionPercent)}%
@@ -342,21 +320,17 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Puzzle Content */}
         <View style={styles.puzzleCard}>
-          <Text style={styles.sectionLabel}>{isZh ? "谜题" : "Puzzle"}</Text>
+          <Text style={styles.sectionLabel}>{isZh ? "谜题" : "The puzzle"}</Text>
           <Text style={styles.puzzleContent}>{localizedContent}</Text>
         </View>
 
-        {/* Hint Section */}
+        {/* Hint */}
         <View style={styles.toggleSection}>
           <TouchableOpacity
             style={[styles.toggleButton, showHint && styles.toggleButtonActive]}
             onPress={async () => {
-              if (showHint) {
-                setShowHint(false);
-                return;
-              }
+              if (showHint) { setShowHint(false); return; }
               setShowHint(true);
               if (sessionId) {
                 setIsLoadingHint(true);
@@ -372,16 +346,15 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
             }}
             activeOpacity={0.7}
           >
-            <Text style={styles.toggleIcon}>{showHint ? "🙈" : "💡"}</Text>
-            <Text
-              style={[
-                styles.toggleButtonText,
-                showHint && styles.toggleButtonTextActive,
-              ]}
-            >
+            {showHint ? (
+              <HintHideIcon size={16} color={colors.textPrimary} />
+            ) : (
+              <HintIcon size={16} color={colors.textSecondary} />
+            )}
+            <Text style={[styles.toggleButtonText, showHint && styles.toggleButtonTextActive]}>
               {showHint
-                ? isZh ? "隐藏提示" : "Hide Hint"
-                : isZh ? "显示提示" : "Show Hint"}
+                ? isZh ? "隐藏提示" : "Hide hint"
+                : isZh ? "A small hint" : "A small hint"}
             </Text>
           </TouchableOpacity>
 
@@ -396,7 +369,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
           )}
         </View>
 
-        {/* Solution Section */}
+        {/* Solution */}
         <View style={styles.toggleSection}>
           <TouchableOpacity
             style={[
@@ -407,7 +380,10 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
             onPress={() => setShowSolution((prev) => !prev)}
             activeOpacity={0.7}
           >
-            <Text style={styles.toggleIcon}>{showSolution ? "🙈" : "📖"}</Text>
+            <SolutionIcon
+              size={16}
+              color={showSolution ? colors.textInverse : colors.primary}
+            />
             <Text
               style={[
                 styles.toggleButtonText,
@@ -416,19 +392,15 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
               ]}
             >
               {showSolution
-                ? isZh
-                  ? "隐藏答案"
-                  : "Hide Solution"
-                : isZh
-                ? "显示完整故事"
-                : "Reveal Full Story"}
+                ? isZh ? "隐藏答案" : "Hide the truth"
+                : isZh ? "完整故事" : "The whole truth"}
             </Text>
           </TouchableOpacity>
 
           {showSolution && (
             <View style={[styles.revealedContent, styles.solutionContent]}>
               <Text style={styles.solutionLabel}>
-                {isZh ? "完整故事" : "Full Story"}
+                {isZh ? "完整故事" : "The full story"}
               </Text>
               <Text style={styles.revealedText}>{localizedFullAnswer}</Text>
             </View>
@@ -436,68 +408,60 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       </ScrollView>
 
-      {/* Evaluation Result */}
+      {/* Evaluation */}
       {evaluationResult && (
         <View style={[styles.evaluationBanner, getEvaluationStyle()]}>
           <Text style={styles.evaluationText}>{evalLabel(evaluationResult)}</Text>
         </View>
       )}
 
-      {/* Puzzle Solved Modal */}
+      {/* Solved */}
       <Modal visible={puzzleSolved} transparent animationType="fade">
         <View style={styles.overlayBackdrop}>
           <View style={styles.overlayCard}>
-            <Text style={styles.overlayEmoji}>🎉</Text>
+            <TruthRevealedIcon size={64} color={colors.primary} />
             <Text style={styles.overlayTitle}>
-              {isZh ? "谜题解开了！" : "Puzzle Solved!"}
+              {isZh ? "真相大白。" : "The truth, revealed."}
             </Text>
             <Text style={styles.overlaySubtitle}>
-              {isZh ? "恭喜你完成了这个谜题" : "You figured it out!"}
+              {isZh ? "你看穿了。" : "You saw it."}
             </Text>
             <TouchableOpacity
               style={styles.overlayButton}
-              onPress={() => {
-                setPuzzleSolved(false);
-                navigation.navigate("Home");
-              }}
-              activeOpacity={0.8}
+              onPress={() => { setPuzzleSolved(false); navigation.navigate("Home"); }}
+              activeOpacity={0.85}
             >
-              <Text style={styles.overlayButtonText}>
-                {isZh ? "返回主页" : "Back to Home"}
-              </Text>
+              <Text style={styles.overlayButtonText}>{isZh ? "返回档案" : "Back to cases"}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* Level Up Modal */}
+      {/* Level Up */}
       <Modal visible={leveledUp} transparent animationType="fade">
         <View style={styles.overlayBackdrop}>
           <View style={styles.overlayCard}>
-            <Text style={styles.overlayEmoji}>⬆️</Text>
+            <AscendIcon size={64} color={colors.primary} />
             <Text style={styles.overlayTitle}>
-              {isZh ? "升级了！" : "Level Up!"}
+              {isZh ? "你升级了。" : "You ascend."}
             </Text>
             <Text style={styles.overlaySubtitle}>
-              {isZh ? `你现在是等级 ${newLevel}` : `You are now Level ${newLevel}`}
+              {isZh ? `等级 ${newLevel}` : `Level ${newLevel}`}
             </Text>
             <TouchableOpacity
               style={styles.overlayButton}
               onPress={() => setLeveledUp(false)}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
-              <Text style={styles.overlayButtonText}>
-                {isZh ? "继续" : "Continue"}
-              </Text>
+              <Text style={styles.overlayButtonText}>{isZh ? "继续" : "Continue"}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* Voice Control */}
+      {/* Voice */}
       <View style={styles.voiceContainer}>
         <Text style={styles.voiceStatusText}>{micStatusText}</Text>
-
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
           <TouchableOpacity
             style={[
@@ -505,20 +469,21 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
               isRecording && styles.micButtonRecording,
               hasPermission === false && styles.micButtonDisabled,
             ]}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             onPress={toggleRecording}
             disabled={hasPermission === false}
           >
-            <Text style={styles.micIcon}>{isRecording ? "⏹️" : "🎤"}</Text>
+            {isRecording ? (
+              <StopIcon size={24} color={colors.textInverse} />
+            ) : (
+              <MicIcon size={28} color={colors.textInverse} strokeWidth={2} />
+            )}
           </TouchableOpacity>
         </Animated.View>
-
         {isRecording && (
           <View style={styles.recordingIndicator}>
             <View style={styles.recordingDot} />
-            <Text style={styles.recordingText}>
-              {isZh ? "录音中" : "Recording"}
-            </Text>
+            <Text style={styles.recordingText}>{isZh ? "录音中" : "Live"}</Text>
           </View>
         )}
       </View>
@@ -527,10 +492,7 @@ export const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
   scrollContent: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xxl + spacing.xl,
@@ -555,6 +517,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: colors.textTertiary,
     fontSize: typography.md,
+    fontFamily: fonts.serif,
   },
   errorCard: {
     backgroundColor: colors.surface,
@@ -564,31 +527,34 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
-    maxWidth: 300,
-  },
-  errorIcon: {
-    fontSize: 48,
-    marginBottom: spacing.sm,
+    maxWidth: 320,
   },
   errorTitle: {
     fontSize: typography.xl,
-    fontWeight: typography.bold,
+    fontFamily: fonts.serif,
     color: colors.textPrimary,
   },
   errorMessage: {
     fontSize: typography.base,
+    fontFamily: fonts.sans,
     color: colors.textMuted,
     textAlign: "center",
   },
+  eyebrow: {
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
+    color: colors.primary,
+    letterSpacing: 2.5,
+    marginBottom: spacing.sm,
+  },
   title: {
     fontSize: typography.xxl,
-    fontWeight: typography.bold,
+    fontFamily: fonts.serif,
     color: colors.textPrimary,
     marginBottom: spacing.lg,
+    lineHeight: 32,
   },
-  progressSection: {
-    marginBottom: spacing.xl,
-  },
+  progressSection: { marginBottom: spacing.xl },
   progressHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -596,19 +562,20 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   progressLabel: {
-    fontSize: typography.sm,
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
     color: colors.textMuted,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
   },
   progressPercent: {
     fontSize: typography.base,
-    fontWeight: typography.semibold,
+    fontFamily: fonts.mono,
     color: colors.primary,
   },
   progressBarBackground: {
     width: "100%",
-    height: 8,
+    height: 4,
     borderRadius: borderRadius.full,
     backgroundColor: colors.surfaceLight,
     overflow: "hidden",
@@ -627,20 +594,20 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   sectionLabel: {
-    fontSize: typography.sm,
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
     color: colors.textMuted,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
     marginBottom: spacing.md,
   },
   puzzleContent: {
     fontSize: typography.lg,
+    fontFamily: fonts.serif,
     color: colors.textSecondary,
-    lineHeight: 26,
+    lineHeight: 28,
   },
-  toggleSection: {
-    marginBottom: spacing.lg,
-  },
+  toggleSection: { marginBottom: spacing.lg },
   toggleButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -658,25 +625,16 @@ const styles = StyleSheet.create({
   },
   solutionButton: {
     borderColor: colors.primary,
-    backgroundColor: "rgba(249, 115, 22, 0.1)",
+    backgroundColor: colors.primaryTint,
   },
-  solutionButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  toggleIcon: {
-    fontSize: 18,
-  },
+  solutionButtonActive: { backgroundColor: colors.primary },
   toggleButtonText: {
     fontSize: typography.base,
-    color: colors.textTertiary,
-    fontWeight: typography.medium,
+    fontFamily: fonts.sansMedium,
+    color: colors.textSecondary,
   },
-  solutionButtonText: {
-    color: colors.primary,
-  },
-  toggleButtonTextActive: {
-    color: colors.textPrimary,
-  },
+  solutionButtonText: { color: colors.primary },
+  toggleButtonTextActive: { color: colors.textInverse },
   revealedContent: {
     marginTop: spacing.md,
     backgroundColor: colors.surface,
@@ -690,16 +648,18 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
   },
   solutionLabel: {
-    fontSize: typography.sm,
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
     color: colors.primary,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
     marginBottom: spacing.sm,
   },
   revealedText: {
     fontSize: typography.base,
+    fontFamily: fonts.serif,
     color: colors.textTertiary,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   evaluationBanner: {
     marginHorizontal: spacing.lg,
@@ -713,8 +673,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   evaluationText: {
-    fontSize: typography.lg,
-    fontWeight: typography.bold,
+    fontSize: typography.xl,
+    fontFamily: fonts.serif,
     color: colors.textPrimary,
   },
   voiceContainer: {
@@ -727,43 +687,41 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   voiceStatusText: {
-    fontSize: typography.sm,
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
     color: colors.textMuted,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
     textAlign: "center",
   },
   micButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    ...shadows.lg,
+    ...shadows.glow,
   },
-  micButtonRecording: {
-    backgroundColor: colors.errorDark,
-  },
-  micButtonDisabled: {
-    opacity: 0.4,
-  },
-  micIcon: {
-    fontSize: 28,
-  },
+  micButtonRecording: { backgroundColor: colors.errorDark },
+  micButtonDisabled: { opacity: 0.4 },
   recordingIndicator: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
   },
   recordingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.errorDark,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.error,
   },
   recordingText: {
-    fontSize: typography.sm,
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
     color: colors.error,
-    fontWeight: typography.medium,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
   primaryButton: {
     backgroundColor: colors.primary,
@@ -773,13 +731,14 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   primaryButtonText: {
-    color: colors.textPrimary,
+    color: colors.textInverse,
     fontSize: typography.base,
-    fontWeight: typography.semibold,
+    fontFamily: fonts.sansSemibold,
+    letterSpacing: 1.5,
   },
   overlayBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: colors.scrim,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -789,35 +748,36 @@ const styles = StyleSheet.create({
     padding: spacing.xxl,
     alignItems: "center",
     gap: spacing.md,
-    width: "78%",
+    width: "82%",
     borderWidth: 1,
     borderColor: colors.border,
-  },
-  overlayEmoji: {
-    fontSize: 52,
+    ...shadows.lg,
   },
   overlayTitle: {
-    fontSize: typography.xl,
-    fontWeight: "800",
+    fontSize: typography.xxl,
+    fontFamily: fonts.serif,
     color: colors.textPrimary,
     textAlign: "center",
   },
   overlaySubtitle: {
-    fontSize: typography.sm,
-    color: colors.textSecondary,
+    fontSize: typography.base,
+    fontFamily: fonts.mono,
+    color: colors.textMuted,
     textAlign: "center",
+    letterSpacing: 1.5,
   },
   overlayButton: {
     marginTop: spacing.sm,
     backgroundColor: colors.primary,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.xxl,
     borderRadius: borderRadius.full,
   },
   overlayButtonText: {
-    color: "#fff",
+    color: colors.textInverse,
     fontSize: typography.base,
-    fontWeight: "700",
+    fontFamily: fonts.sansSemibold,
+    letterSpacing: 1.5,
   },
 });
 

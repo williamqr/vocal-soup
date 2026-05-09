@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   FlatList,
   Animated,
+  ActivityIndicator,
   Dimensions,
   ImageBackground,
   Image,
@@ -18,7 +19,8 @@ import { RootStackParamList } from "../../App";
 import { useAuth } from "../context/AuthContext";
 import { storyApi, type Game, type UserProfile } from "../lib/api";
 import { STATIC_GAMES } from "../lib/staticData";
-import { colors, spacing, borderRadius, typography } from "../theme";
+import { colors, spacing, borderRadius, typography, fonts, shadows } from "../theme";
+import { LockIcon, ReticleIcon, SettingsIcon } from "../icons";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - spacing.lg * 3) / 2;
@@ -29,17 +31,8 @@ const GAME_IMAGES: Record<string, any> = {
   g_celebrityHats_02: require("../../assets/images/Gemini_Generated_Image_x2ju71x2ju71x2ju.png"),
 };
 
-const CARD_COLORS = [
-  "#1B3A2D",
-  "#2A1F3D",
-  "#1A2E3D",
-  "#3D1F2A",
-  "#2D2A1A",
-  "#1A2D2D",
-  "#2D1A1A",
-  "#1F2A3D",
-];
-
+// CIPHER: all cards share one near-black; case art differentiates.
+const CARD_BG = "#15151E";
 
 function LoadingScreen() {
   const progress = useRef(new Animated.Value(0)).current;
@@ -54,7 +47,7 @@ function LoadingScreen() {
 
   return (
     <View style={styles.loadingScreen}>
-      <Text style={styles.loadingTitle}>Puzzles</Text>
+      <Text style={styles.loadingTitle}>CASES</Text>
       <View style={styles.progressBarTrack}>
         <Animated.View
           style={[
@@ -68,7 +61,7 @@ function LoadingScreen() {
           ]}
         />
       </View>
-      <Text style={styles.loadingLabel}>Loading games...</Text>
+      <Text style={styles.loadingLabel}>Opening files...</Text>
     </View>
   );
 }
@@ -90,12 +83,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setLoading(true);
 
         if (!user?.id) {
-          // Guest: show static catalog without user-specific status
           setGames(STATIC_GAMES);
           return;
         }
 
-        // Authenticated: merge server status (locked/completed) into games
         const [userGames, profile] = await Promise.all([
           storyApi.getUserGames(user.id),
           storyApi.getUserProfile(user.id),
@@ -133,7 +124,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setSelectedGame(null);
 
     if (!user) {
-      // Prompt login, passing game params so we land on the game after auth
       navigation.navigate("Login", {
         gameId: selectedGame.id,
         puzzleId: selectedGame.puzzleId,
@@ -156,11 +146,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       )}
       <View style={styles.cardCenter}>
-        {isLocked && (
-          <Text style={styles.lockIcon}>
-            {item.status === "premium" ? "★" : "🔒"}
-          </Text>
-        )}
+        {isLocked &&
+          (item.status === "premium" ? (
+            <ReticleIcon size={28} color={colors.primary} strokeWidth={1.5} />
+          ) : (
+            <LockIcon size={26} color={colors.textTertiary} strokeWidth={1.5} />
+          ))}
       </View>
       <View style={styles.cardBottom}>
         <View style={styles.levelBadge}>
@@ -179,28 +170,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const renderCard = ({ item, index }: { item: Game; index: number }) => {
-    const bgColor = CARD_COLORS[index % CARD_COLORS.length];
     const isLocked = item.status === "locked" || item.status === "premium";
-    const cardStyle = [styles.card, { backgroundColor: bgColor }];
+    const cardStyle = [styles.card, { backgroundColor: CARD_BG }];
     const localImage = GAME_IMAGES[item.id];
 
     return (
       <TouchableOpacity
-        activeOpacity={isLocked ? 1 : 0.8}
+        activeOpacity={isLocked ? 1 : 0.85}
         onPress={() => handleCardPress(item)}
       >
         {localImage ? (
-          <ImageBackground
-            source={localImage}
-            style={cardStyle}
-            imageStyle={styles.cardImage}
-          >
+          <ImageBackground source={localImage} style={cardStyle} imageStyle={styles.cardImage}>
             {renderCardInner(item, isLocked)}
           </ImageBackground>
         ) : (
-          <View style={cardStyle}>
-            {renderCardInner(item, isLocked)}
-          </View>
+          <View style={cardStyle}>{renderCardInner(item, isLocked)}</View>
         )}
       </TouchableOpacity>
     );
@@ -208,7 +192,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const playButtonLabel = !user
     ? isZh ? "登录以游戏" : "Sign in to Play"
-    : isZh ? "开始" : "Play";
+    : isZh ? "进入" : "Enter";
 
   return (
     <View style={styles.container}>
@@ -235,7 +219,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <TouchableOpacity
                 style={styles.modalPlayButton}
                 onPress={handlePlay}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
                 <Text style={styles.modalPlayText}>{playButtonLabel}</Text>
               </TouchableOpacity>
@@ -245,12 +229,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       </Modal>
 
       <View style={styles.header}>
-        <Text style={styles.appTitle}>{isZh ? "谜题" : "Puzzles"}</Text>
+        <Text style={styles.appTitle}>{isZh ? "档案" : "CASES"}</Text>
         {user ? (
           <>
             {userProfile && (
               <View style={styles.userLevelBadge}>
-                <Text style={styles.userLevelText}>LV{userProfile.level}</Text>
+                <Text style={styles.userLevelText}>LV {userProfile.level}</Text>
               </View>
             )}
             <TouchableOpacity
@@ -258,7 +242,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               onPress={() => navigation.navigate("Settings")}
               activeOpacity={0.7}
             >
-              <Text style={styles.settingsIcon}>⚙️</Text>
+              <SettingsIcon size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </>
         ) : (
@@ -290,10 +274,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -303,25 +284,26 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   appTitle: {
-    fontSize: typography.xl,
-    fontWeight: typography.bold,
+    fontSize: typography.lg,
+    fontFamily: fonts.mono,
     color: colors.textPrimary,
-    letterSpacing: -0.3,
+    letterSpacing: 4,
   },
   userLevelBadge: {
     position: "absolute",
     left: spacing.lg,
-    top: spacing.xxl + spacing.lg,
+    top: spacing.xxl + spacing.lg + 6,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: borderRadius.sm,
-    backgroundColor: colors.primary,
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   userLevelText: {
     fontSize: typography.xs,
-    fontWeight: "700",
-    color: "#fff",
-    letterSpacing: 0.5,
+    fontFamily: fonts.mono,
+    color: colors.primary,
+    letterSpacing: 1,
   },
   settingsButton: {
     position: "absolute",
@@ -336,9 +318,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  settingsIcon: {
-    fontSize: 18,
-  },
   loginButton: {
     position: "absolute",
     right: spacing.lg,
@@ -350,33 +329,8 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     fontSize: typography.sm,
-    fontWeight: typography.semibold,
-    color: "#fff",
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  grid: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
-    paddingTop: spacing.sm,
-  },
-  row: {
-    gap: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  card: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: borderRadius.xl,
-    overflow: "hidden",
-    justifyContent: "space-between",
-    padding: spacing.md,
-  },
-  cardImage: {
-    borderRadius: borderRadius.xl,
+    fontFamily: fonts.sansSemibold,
+    color: colors.textInverse,
   },
   loadingScreen: {
     flex: 1,
@@ -387,31 +341,50 @@ const styles = StyleSheet.create({
   },
   loadingTitle: {
     fontSize: typography.xxl,
-    fontWeight: "800",
+    fontFamily: fonts.mono,
     color: colors.textPrimary,
-    letterSpacing: 1,
+    letterSpacing: 4,
     marginBottom: spacing.sm,
   },
   progressBarTrack: {
     width: "100%",
-    height: 6,
-    borderRadius: 3,
+    height: 2,
+    borderRadius: 1,
     backgroundColor: colors.surface,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    borderRadius: 3,
+    borderRadius: 1,
     backgroundColor: colors.primary,
   },
   loadingLabel: {
-    fontSize: typography.sm,
-    color: colors.textSecondary,
-    letterSpacing: 0.3,
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
+    color: colors.textMuted,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
+  grid: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
+    paddingTop: spacing.sm,
+  },
+  row: { gap: spacing.lg, marginBottom: spacing.lg },
+  card: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: borderRadius.xl,
+    overflow: "hidden",
+    justifyContent: "space-between",
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cardImage: { borderRadius: borderRadius.xl },
   lockedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(10,10,15,0.72)",
   },
   completedBadge: {
     position: "absolute",
@@ -427,18 +400,10 @@ const styles = StyleSheet.create({
   },
   completedBadgeText: {
     fontSize: 12,
-    fontWeight: "800",
-    color: "#fff",
+    fontFamily: fonts.sansBold,
+    color: colors.textInverse,
   },
-  cardCenter: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  lockIcon: {
-    fontSize: 28,
-    opacity: 0.7,
-  },
+  cardCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
   cardBottom: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -448,80 +413,76 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "rgba(255,255,255,0.08)",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
   },
   levelText: {
     fontSize: typography.sm,
-    fontWeight: typography.semibold,
+    fontFamily: fonts.mono,
     color: colors.textPrimary,
   },
-  cardMeta: {
-    flex: 1,
-    gap: 2,
-  },
+  cardMeta: { flex: 1, gap: 2 },
   genreText: {
     fontSize: typography.xs,
-    fontWeight: typography.semibold,
+    fontFamily: fonts.mono,
     color: colors.primary,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
   },
   introText: {
     fontSize: typography.xs,
-    color: "rgba(255,255,255,0.6)",
+    fontFamily: fonts.serif,
+    color: "rgba(245,245,240,0.55)",
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: colors.scrim,
     alignItems: "center",
     justifyContent: "center",
   },
   modalCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.xl,
-    width: width * 0.78,
+    width: width * 0.82,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.lg,
   },
-  modalImage: {
-    width: "100%",
-    height: 180,
-  },
-  modalImagePlaceholder: {
-    width: "100%",
-    height: 180,
-    backgroundColor: colors.border,
-  },
-  modalContent: {
-    padding: spacing.xl,
-    alignItems: "center",
-    gap: spacing.sm,
-  },
+  modalImage: { width: "100%", height: 180 },
+  modalImagePlaceholder: { width: "100%", height: 180, backgroundColor: colors.surfaceLight },
+  modalContent: { padding: spacing.xl, alignItems: "center", gap: spacing.sm },
   modalGenre: {
-    fontSize: typography.lg,
-    fontWeight: typography.bold,
-    color: colors.textPrimary,
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
+    color: colors.primary,
+    letterSpacing: 2,
+    textTransform: "uppercase",
     textAlign: "center",
   },
   modalIntro: {
-    fontSize: typography.sm,
+    fontSize: typography.lg,
+    fontFamily: fonts.serif,
     color: colors.textSecondary,
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 26,
   },
   modalPlayButton: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     backgroundColor: colors.primary,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xxxl,
     borderRadius: borderRadius.full,
   },
   modalPlayText: {
-    color: colors.background,
+    color: colors.textInverse,
     fontSize: typography.base,
-    fontWeight: typography.semibold,
+    fontFamily: fonts.sansSemibold,
+    letterSpacing: 2,
   },
 });
 

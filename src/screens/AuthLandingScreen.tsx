@@ -1,61 +1,62 @@
 // src/screens/AuthLandingScreen.tsx
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { colors, spacing, borderRadius, typography, shadows } from "../theme";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../App";
+import { colors, spacing, borderRadius, typography, fonts, shadows } from "../theme";
+import { CipherMark } from "../icons";
 
-export const AuthLandingScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+type Props = NativeStackScreenProps<RootStackParamList, "AuthLanding">;
+
+export const AuthLandingScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
-      {/* Decorative background element */}
       <View style={styles.backgroundGlow} />
 
-      {/* Logo Section */}
       <View style={styles.logoSection}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoIcon}>🍲</Text>
+          <CipherMark size={56} color={colors.primary} />
         </View>
-        <Text style={styles.logo}>Vocal Soup</Text>
+        <Text style={styles.logo}>CIPHER</Text>
+        <Text style={styles.eyebrow}>A VOICE-DRIVEN MYSTERY</Text>
         <Text style={styles.tagline}>
-          A voice-driven mystery game{"\n"}inspired by 海龟汤
+          The story is already over.{"\n"}You're alone in the room.
         </Text>
       </View>
 
-      {/* Features Preview */}
       <View style={styles.featuresSection}>
         <View style={styles.featureItem}>
-          <Text style={styles.featureIcon}>🎤</Text>
-          <Text style={styles.featureText}>Ask questions by voice</Text>
+          <View style={styles.featureRule} />
+          <Text style={styles.featureText}>Speak to ask. Listen to learn.</Text>
         </View>
         <View style={styles.featureItem}>
-          <Text style={styles.featureIcon}>🧩</Text>
-          <Text style={styles.featureText}>Solve lateral thinking puzzles</Text>
+          <View style={styles.featureRule} />
+          <Text style={styles.featureText}>Lateral puzzles in the spirit of 海龟汤.</Text>
         </View>
         <View style={styles.featureItem}>
-          <Text style={styles.featureIcon}>🌏</Text>
-          <Text style={styles.featureText}>Play in English or 中文</Text>
+          <View style={styles.featureRule} />
+          <Text style={styles.featureText}>English or 中文 — your choice.</Text>
         </View>
       </View>
 
-      {/* Buttons */}
       <View style={styles.buttonsContainer}>
         <TouchableOpacity
           style={styles.primaryButton}
           onPress={() => navigation.navigate("Login")}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
-          <Text style={styles.primaryButtonText}>Log In</Text>
+          <Text style={styles.primaryButtonText}>Enter</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.secondaryButton}
           onPress={() => navigation.navigate("Signup")}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
-          <Text style={styles.secondaryButtonText}>Create Account</Text>
+          <Text style={styles.secondaryButtonText}>Create an account</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Skip Option */}
       <TouchableOpacity
         style={styles.skipButton}
         onPress={() => navigation.replace("Home")}
@@ -77,44 +78,49 @@ const styles = StyleSheet.create({
   },
   backgroundGlow: {
     position: "absolute",
-    top: "20%",
-    width: 300,
-    height: 300,
-    borderRadius: 150,
+    top: "18%",
+    width: 360,
+    height: 360,
+    borderRadius: 180,
     backgroundColor: colors.primary,
-    opacity: 0.05,
+    opacity: 0.06,
   },
   logoSection: {
     alignItems: "center",
     marginBottom: spacing.xxl,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 96,
+    height: 96,
+    borderRadius: borderRadius.xl,
     backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.lg,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    borderWidth: 1,
+    borderColor: colors.border,
     ...shadows.glow,
-  },
-  logoIcon: {
-    fontSize: 40,
   },
   logo: {
     fontSize: typography.display,
-    fontWeight: typography.bold,
+    fontFamily: fonts.sansBold,
     color: colors.textPrimary,
+    marginBottom: spacing.sm,
+    letterSpacing: 4,
+  },
+  eyebrow: {
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
+    color: colors.primary,
+    letterSpacing: 2.5,
     marginBottom: spacing.md,
-    letterSpacing: -0.5,
   },
   tagline: {
-    fontSize: typography.md,
-    color: colors.textMuted,
+    fontSize: typography.lg,
+    fontFamily: fonts.serif,
+    color: colors.textSecondary,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 28,
   },
   featuresSection: {
     width: "100%",
@@ -131,13 +137,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
   },
-  featureIcon: {
-    fontSize: 20,
-    width: 32,
-    textAlign: "center",
+  featureRule: {
+    width: 16,
+    height: 1,
+    backgroundColor: colors.primary,
   },
   featureText: {
     fontSize: typography.base,
+    fontFamily: fonts.sans,
     color: colors.textTertiary,
     flex: 1,
   },
@@ -153,22 +160,23 @@ const styles = StyleSheet.create({
     ...shadows.md,
   },
   primaryButtonText: {
-    color: colors.textPrimary,
+    color: colors.textInverse,
     fontSize: typography.md,
-    fontWeight: typography.semibold,
+    fontFamily: fonts.sansSemibold,
+    letterSpacing: 2,
   },
   secondaryButton: {
-    borderWidth: 1.5,
-    borderColor: colors.borderDark,
-    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    backgroundColor: "transparent",
     paddingVertical: spacing.lg,
     borderRadius: borderRadius.full,
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: colors.textTertiary,
+    color: colors.textSecondary,
     fontSize: typography.md,
-    fontWeight: typography.medium,
+    fontFamily: fonts.sansMedium,
   },
   skipButton: {
     marginTop: spacing.xl,
@@ -178,6 +186,7 @@ const styles = StyleSheet.create({
   skipText: {
     color: colors.textMuted,
     fontSize: typography.base,
+    fontFamily: fonts.sans,
     textDecorationLine: "underline",
   },
 });

@@ -12,7 +12,8 @@ import {
   ScrollView,
 } from "react-native";
 import { signUpWithEmail } from "../services/auth";
-import { colors, spacing, borderRadius, typography, shadows } from "../theme";
+import { colors, spacing, borderRadius, typography, fonts, shadows } from "../theme";
+import { CheckIcon } from "../icons";
 
 export function SignupScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
@@ -51,11 +52,9 @@ export function SignupScreen({ navigation }: any) {
     setLoading(true);
 
     try {
-      const { user } = await signUpWithEmail(email.trim(), password, {
-        language,
-      });
+      const { user } = await signUpWithEmail(email.trim(), password, { language });
       console.log("Signed up user:", user?.id);
-      setSuccessMsg("Check your email to confirm your account, then log in.");
+      setSuccessMsg("Check your email to confirm. Then come back.");
     } catch (err: any) {
       setErrorMsg(err.message ?? "Signup failed");
     } finally {
@@ -68,28 +67,17 @@ export function SignupScreen({ navigation }: any) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>
-            Join Vocal Soup and start solving mysteries
-          </Text>
+          <Text style={styles.eyebrow}>NEW CASE</Text>
+          <Text style={styles.title}>Step into the room.</Text>
         </View>
 
-        {/* Form */}
         <View style={styles.form}>
-          {/* Email */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={[
-                styles.input,
-                focusedField === "email" && styles.inputFocused,
-              ]}
+              style={[styles.input, focusedField === "email" && styles.inputFocused]}
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
@@ -102,14 +90,10 @@ export function SignupScreen({ navigation }: any) {
             />
           </View>
 
-          {/* Password */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
             <TextInput
-              style={[
-                styles.input,
-                focusedField === "password" && styles.inputFocused,
-              ]}
+              style={[styles.input, focusedField === "password" && styles.inputFocused]}
               secureTextEntry
               autoComplete="new-password"
               placeholder="At least 6 characters"
@@ -121,17 +105,13 @@ export function SignupScreen({ navigation }: any) {
             />
           </View>
 
-          {/* Confirm Password */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirm Password</Text>
+            <Text style={styles.label}>Confirm</Text>
             <TextInput
-              style={[
-                styles.input,
-                focusedField === "confirmPassword" && styles.inputFocused,
-              ]}
+              style={[styles.input, focusedField === "confirmPassword" && styles.inputFocused]}
               secureTextEntry
               autoComplete="new-password"
-              placeholder="Re-enter your password"
+              placeholder="Once more"
               placeholderTextColor={colors.textDim}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -140,85 +120,63 @@ export function SignupScreen({ navigation }: any) {
             />
           </View>
 
-          {/* Language Selection */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Preferred Language</Text>
+            <Text style={styles.label}>Language</Text>
             <View style={styles.languageRow}>
               <TouchableOpacity
-                style={[
-                  styles.languageButton,
-                  language === "en" && styles.languageButtonSelected,
-                ]}
+                style={[styles.languageButton, language === "en" && styles.languageButtonSelected]}
                 onPress={() => setLanguage("en")}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
-                <Text
-                  style={[
-                    styles.languageText,
-                    language === "en" && styles.languageTextSelected,
-                  ]}
-                >
+                <Text style={[styles.languageText, language === "en" && styles.languageTextSelected]}>
                   English
                 </Text>
+                {language === "en" && <CheckIcon size={14} color={colors.textInverse} />}
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[
-                  styles.languageButton,
-                  language === "zh" && styles.languageButtonSelected,
-                ]}
+                style={[styles.languageButton, language === "zh" && styles.languageButtonSelected]}
                 onPress={() => setLanguage("zh")}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
-                <Text
-                  style={[
-                    styles.languageText,
-                    language === "zh" && styles.languageTextSelected,
-                  ]}
-                >
+                <Text style={[styles.languageText, styles.languageTextZh, language === "zh" && styles.languageTextSelected]}>
                   中文
                 </Text>
+                {language === "zh" && <CheckIcon size={14} color={colors.textInverse} />}
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Error Message */}
           {errorMsg && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>{errorMsg}</Text>
             </View>
           )}
 
-          {/* Success Message */}
           {successMsg && (
             <View style={styles.successContainer}>
               <Text style={styles.successText}>{successMsg}</Text>
             </View>
           )}
 
-          {/* Signup Button */}
           <TouchableOpacity
             style={[styles.primaryButton, loading && styles.buttonDisabled]}
             onPress={handleSignup}
             disabled={loading}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color={colors.textPrimary} size="small" />
+              <ActivityIndicator color={colors.textInverse} size="small" />
             ) : (
-              <Text style={styles.primaryButtonText}>Create Account</Text>
+              <Text style={styles.primaryButtonText}>Open the case</Text>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account?</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Login")}
-            style={styles.linkButton}
-          >
-            <Text style={styles.linkText}>Log In</Text>
+          <TouchableOpacity onPress={() => navigation.navigate("Login")} style={styles.linkButton}>
+            <Text style={styles.linkText}>Enter</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -227,46 +185,39 @@ export function SignupScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxl,
     paddingBottom: spacing.xxl,
   },
-  header: {
-    marginBottom: spacing.xl,
+  header: { marginBottom: spacing.xl },
+  eyebrow: {
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
+    color: colors.primary,
+    letterSpacing: 2.5,
+    marginBottom: spacing.md,
   },
   title: {
     fontSize: typography.xxxl,
-    fontWeight: typography.bold,
+    fontFamily: fonts.serif,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    lineHeight: 38,
   },
-  subtitle: {
-    fontSize: typography.md,
-    color: colors.textMuted,
-    lineHeight: 22,
-  },
-  form: {
-    gap: spacing.lg,
-  },
-  inputGroup: {
-    gap: spacing.sm,
-  },
+  form: { gap: spacing.lg },
+  inputGroup: { gap: spacing.sm },
   label: {
     color: colors.textMuted,
-    fontSize: typography.sm,
-    fontWeight: typography.medium,
+    fontSize: typography.xs,
+    fontFamily: fonts.mono,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
     marginLeft: spacing.xs,
   },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceLight,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -274,24 +225,21 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md + 2,
     color: colors.textPrimary,
     fontSize: typography.md,
+    fontFamily: fonts.sans,
   },
-  inputFocused: {
-    borderColor: colors.primary,
-    ...shadows.sm,
-  },
-  languageRow: {
-    flexDirection: "row",
-    gap: spacing.md,
-  },
+  inputFocused: { borderColor: colors.primary, ...shadows.sm },
+  languageRow: { flexDirection: "row", gap: spacing.md },
   languageButton: {
     flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.borderLight,
-    backgroundColor: colors.surfaceLight,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.surfaceLight,
   },
   languageButtonSelected: {
     backgroundColor: colors.primary,
@@ -301,33 +249,26 @@ const styles = StyleSheet.create({
   languageText: {
     color: colors.textTertiary,
     fontSize: typography.md,
-    fontWeight: typography.semibold,
+    fontFamily: fonts.sansSemibold,
   },
-  languageTextSelected: {
-    color: colors.textPrimary,
-  },
+  languageTextZh: { fontFamily: fonts.sansSCBold },
+  languageTextSelected: { color: colors.textInverse },
   errorContainer: {
-    backgroundColor: "rgba(248, 113, 113, 0.1)",
+    backgroundColor: colors.errorTint,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     borderLeftWidth: 3,
     borderLeftColor: colors.error,
   },
-  errorText: {
-    color: colors.error,
-    fontSize: typography.base,
-  },
+  errorText: { color: colors.error, fontSize: typography.base, fontFamily: fonts.sans },
   successContainer: {
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    backgroundColor: colors.successTint,
     borderRadius: borderRadius.md,
     padding: spacing.md,
     borderLeftWidth: 3,
     borderLeftColor: colors.success,
   },
-  successText: {
-    color: colors.success,
-    fontSize: typography.base,
-  },
+  successText: { color: colors.success, fontSize: typography.base, fontFamily: fonts.sans },
   primaryButton: {
     backgroundColor: colors.primary,
     paddingVertical: spacing.lg,
@@ -337,13 +278,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     ...shadows.md,
   },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
+  buttonDisabled: { opacity: 0.7 },
   primaryButtonText: {
-    color: colors.textPrimary,
+    color: colors.textInverse,
     fontSize: typography.md,
-    fontWeight: typography.semibold,
+    fontFamily: fonts.sansSemibold,
+    letterSpacing: 2,
   },
   footer: {
     flexDirection: "row",
@@ -353,16 +293,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     gap: spacing.sm,
   },
-  footerText: {
-    color: colors.textMuted,
-    fontSize: typography.base,
-  },
-  linkButton: {
-    paddingVertical: spacing.xs,
-  },
-  linkText: {
-    color: colors.primary,
-    fontSize: typography.base,
-    fontWeight: typography.semibold,
-  },
+  footerText: { color: colors.textMuted, fontSize: typography.base, fontFamily: fonts.sans },
+  linkButton: { paddingVertical: spacing.xs },
+  linkText: { color: colors.primary, fontSize: typography.base, fontFamily: fonts.sansSemibold },
 });
