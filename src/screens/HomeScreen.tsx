@@ -18,7 +18,6 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { useAuth } from "../context/AuthContext";
 import { storyApi, type Game, type UserProfile } from "../lib/api";
-import { STATIC_GAMES } from "../lib/staticData";
 import { colors, spacing, borderRadius, typography, fonts, shadows } from "../theme";
 import { LockIcon, ReticleIcon, SettingsIcon } from "../icons";
 
@@ -83,16 +82,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setLoading(true);
 
         if (!user?.id) {
-          setGames(STATIC_GAMES);
+          const allGames = await storyApi.getGames();
+          setGames(allGames);
           return;
         }
 
-        const [userGames, profile] = await Promise.all([
+        const [allGames, userGames, profile] = await Promise.all([
+          storyApi.getGames(),
           storyApi.getUserGames(user.id),
           storyApi.getUserProfile(user.id),
         ]);
 
-        const merged = STATIC_GAMES.map((game) => {
+        const merged = allGames.map((game) => {
           const userStatus = userGames.find((s) => s.gameId === game.id);
           return {
             ...game,
@@ -105,7 +106,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setUserProfile(profile);
       } catch (err: any) {
         console.error("Failed to load games:", err);
-        setGames(STATIC_GAMES);
+        setGames([]);
       } finally {
         setLoading(false);
       }
