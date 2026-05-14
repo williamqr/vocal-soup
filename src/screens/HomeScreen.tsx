@@ -19,7 +19,6 @@ import { useFocusEffect } from "@react-navigation/native";
 import { RootStackParamList } from "../../App";
 import { useAuth } from "../context/AuthContext";
 import { storyApi, type Game, type UserProfile } from "../lib/api";
-import { STATIC_GAMES } from "../lib/staticData";
 import { colors, spacing, borderRadius, typography, fonts, shadows } from "../theme";
 import { LockIcon, ReticleIcon, SettingsIcon } from "../icons";
 
@@ -98,37 +97,40 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             return;
           }
 
-          const [userGames, profile] = await Promise.all([
-            storyApi.getUserGames(user.id),
-            storyApi.getUserProfile(user.id),
-          ]);
-
-          if (cancelled) return;
-
-          const merged = STATIC_GAMES.map((game) => {
-            const userStatus = userGames.find((s) => s.gameId === game.id);
-            return {
-              ...game,
-              status: userStatus?.locked ? ("locked" as const) : game.status,
-              completed: userStatus?.completed ?? false,
-              experience: userStatus?.experience ?? game.experience,
-            };
-          });
-
-          setGames(merged);
-          setUserProfile(profile);
-        } catch (err: any) {
-          console.error("Failed to load games:", err);
-          if (!cancelled) setGames(STATIC_GAMES);
-        } finally {
-          if (!cancelled) setLoading(false);
+        if (!user?.id) {
+          const allGames = await storyApi.getGames();
+          setGames(allGames);
+          return;
         }
       };
 
-      loadGames();
-      return () => { cancelled = true; };
-    }, [authLoading, user?.id])
-  );
+        const [allGames, userGames, profile] = await Promise.all([
+          storyApi.getGames(),
+          storyApi.getUserGames(user.id),
+          storyApi.getUserProfile(user.id),
+        ]);
+
+        const merged = allGames.map((game) => {
+          const userStatus = userGames.find((s) => s.gameId === game.id);
+          return {
+            ...game,
+            status: userStatus?.locked ? ("locked" as const) : game.status,
+            completed: userStatus?.completed ?? false,
+          };
+        });
+
+        setGames(merged);
+        setUserProfile(profile);
+      } catch (err: any) {
+        console.error("Failed to load games:", err);
+        setGames([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadGames();
+  }, [authLoading, user?.id]);
 
   const handleCardPress = (item: Game) => {
     if (item.status !== "available" || !item.puzzleId) return;

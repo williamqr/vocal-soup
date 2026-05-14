@@ -70,6 +70,12 @@ export type TranscribeResponse = {
 // API functions
 export const storyApi = {
   /**
+   * Fetch all games from the backend catalog
+   */
+  getGames: () =>
+    api.get<Game[]>(`/v1/games`),
+
+  /**
    * Fetch per-user locked/completed status for all games
    */
   getUserGames: (userId: string) =>
